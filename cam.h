@@ -1,27 +1,7 @@
 #pragma once
 #include <queue>
 #include <memory>
-//#include <libcamera/libcamera.h>
-
-
-#include <sys/mman.h>
-
-#include <condition_variable>
-#include <iostream>
-#include <mutex>
-#include <set>
-#include <string>
-#include <thread>
-#include <variant>
-
-#include <libcamera/base/span.h>
-#include <libcamera/camera.h>
-#include <libcamera/camera_manager.h>
-#include <libcamera/control_ids.h>
-#include <libcamera/controls.h>
-#include <libcamera/formats.h>
-#include <libcamera/framebuffer_allocator.h>
-#include <libcamera/property_ids.h>
+#include <libcamera/libcamera.h>
 
 class Cam
 {

@@ -10,4 +10,4 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_executable(cam_code main.cpp cam.cpp)
 
-target_link_libraries(cam_code libcamera.so)
+target_link_libraries(cam_code libcamera.so libcamera-base.so)
