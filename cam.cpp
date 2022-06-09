@@ -60,7 +60,7 @@ void Cam::start()
     if(ret)
         throw std::exception();
 
-	camera->requestCompleted.connect(this, &requestQueue);
+	camera->requestCompleted.connect(this, &Cam::requestComplete);
 
 }
 
