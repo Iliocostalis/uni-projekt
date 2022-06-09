@@ -6,6 +6,11 @@ void print(int value)
     std::cout << value << std::endl;
 }
 
+void Cam::requestComplete(libcamera::Request* request)
+{
+    
+}
+
 void Cam::init()
 {
     libcamera::CameraManager cameraManager;
