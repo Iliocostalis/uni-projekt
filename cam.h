@@ -10,6 +10,7 @@ class Cam
     std::queue<libcamera::Request*> requestQueue;
     std::unique_ptr<libcamera::CameraConfiguration> config;
 
+    
     //void requestComplete(libcamera::Request* request);
 
 public:

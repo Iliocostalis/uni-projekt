@@ -4,14 +4,25 @@
 #include <iomanip>
 #include <thread>
 #include <chrono>
+#include <sys/mman.h>
+
 //#include "event_loop.h"
 
 //EventLoop loop;
 Cam* cam;
+std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_buffers;
 
 void print(int value)
 {
     std::cout << value << std::endl;
+}
+
+std::vector<libcamera::Span<uint8_t>> Mmap(libcamera::FrameBuffer *buffer)
+{
+	auto item = mapped_buffers.find(buffer);
+	if (item == mapped_buffers.end())
+		return {};
+	return item->second;
 }
 
 void requestComplete(libcamera::Request *request)
@@ -84,11 +95,22 @@ void Cam::processRequest(libcamera::Request *request)
 		}
 
 		std::cout << std::endl;
-
+        
 		/*
 		 * Image data can be accessed here, but the FrameBuffer
 		 * must be mapped by the application
 		 */
+
+        int co = 0;
+        libcamera::Span span = Mmap(buffer)[0];
+        for(auto it = span.begin(); it != span.end(); ++it)
+        {
+            co++;
+            if(co > 100)
+                break;
+            std::cout << *it << "/";
+        }
+        std::cout << std::endl;
 	}
 
 	/* Re-queue the Request to the camera. */
@@ -167,6 +189,25 @@ void Cam::start()
 
 		size_t allocated = allocator->buffers(cfg.stream()).size();
 		std::cout << "Allocated " << allocated << " buffers for stream" << std::endl;
+
+        for (const std::unique_ptr<libcamera::FrameBuffer> &buffer : allocator->buffers(cfg.stream()))
+		{
+			// "Single plane" buffers appear as multi-plane here, but we can spot them because then
+			// planes all share the same fd. We accumulate them so as to mmap the buffer only once.
+			size_t buffer_size = 0;
+			for (unsigned i = 0; i < buffer->planes().size(); i++)
+			{
+				const libcamera::FrameBuffer::Plane &plane = buffer->planes()[i];
+				buffer_size += plane.length;
+				if (i == buffer->planes().size() - 1 || plane.fd.get() != buffer->planes()[i + 1].fd.get())
+				{
+					void *memory = mmap(NULL, buffer_size, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
+					mapped_buffers[buffer.get()].push_back(libcamera::Span<uint8_t>(static_cast<uint8_t *>(memory), buffer_size));
+					buffer_size = 0;
+				}
+			}
+			//frame_buffers_[stream].push(buffer.get());
+		}
 	}
 
 
