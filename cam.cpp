@@ -11,17 +11,20 @@ void print(int value)
     std::cout << value << std::endl;
 }
 
-void processRequest(Request *request);
-
-void requestComplete(Request *request)
+void requestComplete(libcamera::Request *request)
 {
-	if (request->status() == Request::RequestCancelled)
+	if (request->status() == libcamera::Request::RequestCancelled)
 		return;
 
-	loop.callLater(std::bind(&processRequest, request));
+	loop.callLater(std::bind(&Cam::processRequest, Cam::getInstance(), request));
 }
 
-void processRequest(Request *request)
+Cam* Cam::getInstance()
+{
+    return cam;
+}
+
+void Cam::processRequest(libcamera::Request *request)
 {
 	std::cout << std::endl
 		  << "Request completed: " << request->toString() << std::endl;
@@ -37,10 +40,10 @@ void processRequest(Request *request)
 	 * all the metadata for inspection. A custom application can parse each
 	 * of these items and process them according to its needs.
 	 */
-	const ControlList &requestMetadata = request->metadata();
+	const libcamera::ControlList &requestMetadata = request->metadata();
 	for (const auto &ctrl : requestMetadata) {
-		const ControlId *id = controls::controls.at(ctrl.first);
-		const ControlValue &value = ctrl.second;
+		const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);
+		const libcamera::ControlValue &value = ctrl.second;
 
 		std::cout << "\t" << id->name() << " = " << value.toString()
 			  << std::endl;
@@ -56,11 +59,11 @@ void processRequest(Request *request)
 	 * same time, or to allow obtaining the RAW capture buffer from the
 	 * sensor along with the image as processed by the ISP.
 	 */
-	const Request::BufferMap &buffers = request->buffers();
+	const libcamera::Request::BufferMap &buffers = request->buffers();
 	for (auto bufferPair : buffers) {
 		// (Unused) Stream *stream = bufferPair.first;
-		FrameBuffer *buffer = bufferPair.second;
-		const FrameMetadata &metadata = buffer->metadata();
+		libcamera::FrameBuffer *buffer = bufferPair.second;
+		const libcamera::FrameMetadata &metadata = buffer->metadata();
 
 		/* Print some information about the buffer which has completed. */
 		std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence
@@ -68,7 +71,7 @@ void processRequest(Request *request)
 			  << " bytesused: ";
 
 		unsigned int nplane = 0;
-		for (const FrameMetadata::Plane &plane : metadata.planes())
+		for (const libcamera::FrameMetadata::Plane &plane : metadata.planes())
 		{
 			std::cout << plane.bytesused;
 			if (++nplane < metadata.planes().size())
@@ -84,23 +87,26 @@ void processRequest(Request *request)
 	}
 
 	/* Re-queue the Request to the camera. */
-	request->reuse(Request::ReuseBuffers);
+	request->reuse(libcamera::Request::ReuseBuffers);
 	camera->queueRequest(request);
 }
 
 void Cam::init()
 {
-    libcamera::CameraManager cameraManager;
+    cam = this;
 
-	int ret = cameraManager.start();
+    cameraManager = std::make_shared<libcamera::CameraManager>();
+    //libcamera::CameraManager cameraManager;
+
+	int ret = cameraManager->start();
 	print(ret);
 
-    int countCam = cameraManager.cameras().size();
+    int countCam = cameraManager->cameras().size();
     std::cout << "count cam: " << countCam << std::endl;
 
-    std::string cameraId = cameraManager.cameras()[0]->id();
+    std::string cameraId = cameraManager->cameras()[0]->id();
 
-    camera = cameraManager.get(cameraId);
+    camera = cameraManager->get(cameraId);
     if(!camera)
         throw std::exception();
 
@@ -141,16 +147,17 @@ void Cam::start()
 
     if(ret)
         throw std::exception();
+    libcamera::StreamConfiguration &streamConfig = config->at(0);
 
-	camera->requestCompleted.connect(this, &Cam::requestComplete);
+	camera->requestCompleted.connect(requestComplete);
 
-    FrameBufferAllocator *allocator = new FrameBufferAllocator(camera);
+    libcamera::FrameBufferAllocator *allocator = new libcamera::FrameBufferAllocator(camera);
 
-	for (StreamConfiguration &cfg : *config) {
+	for (libcamera::StreamConfiguration &cfg : *config) {
 		int ret = allocator->allocate(cfg.stream());
 		if (ret < 0) {
 			std::cerr << "Can't allocate buffers" << std::endl;
-			return EXIT_FAILURE;
+			return;
 		}
 
 		size_t allocated = allocator->buffers(cfg.stream()).size();
@@ -159,45 +166,46 @@ void Cam::start()
 
 
 
-
-    Stream *stream = config.stream();
-	const std::vector<std::unique_ptr<FrameBuffer>> &buffers = allocator->buffers(stream);
-	std::vector<std::unique_ptr<Request>> requests;
+    libcamera::Stream *stream = streamConfig.stream();
+	const std::vector<std::unique_ptr<libcamera::FrameBuffer>> &buffers = allocator->buffers(stream);
+	std::vector<std::unique_ptr<libcamera::Request>> requests;
 	for (unsigned int i = 0; i < buffers.size(); ++i) {
-		std::unique_ptr<Request> request = camera->createRequest();
+		std::unique_ptr<libcamera::Request> request = camera->createRequest();
 		if (!request)
 		{
 			std::cerr << "Can't create request" << std::endl;
-			return EXIT_FAILURE;
+			return;
 		}
 
-		const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
+		const std::unique_ptr<libcamera::FrameBuffer> &buffer = buffers[i];
 		int ret = request->addBuffer(stream, buffer.get());
 		if (ret < 0)
 		{
 			std::cerr << "Can't set buffer for request"
 				  << std::endl;
-			return EXIT_FAILURE;
+			return;
 		}
 
 		/*
 		 * Controls can be added to a request on a per frame basis.
 		 */
-		ControlList &controls = request->controls();
-		controls.set(controls::Brightness, 0.5);
+		libcamera::ControlList &controls = request->controls();
+		controls.set(libcamera::controls::Brightness, 0.5);
 
 		requests.push_back(std::move(request));
 	}
 
 
-
+    //camera->requestCompleted.connect(requestComplete);
+    //camera->requestCompleted.connect([this](libcamera::Request *request){requestComplete(request);});
+    //camera->requestCompleted.connect(std::bind(&Cam::requestComplete, this, std::placeholders::_1));
     camera->requestCompleted.connect(requestComplete);
 
 
 
 
     camera->start();
-	for (std::unique_ptr<Request> &request : requests)
+	for (std::unique_ptr<libcamera::Request> &request : requests)
 		camera->queueRequest(request.get());
 
 
