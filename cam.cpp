@@ -5,6 +5,7 @@
 #include <thread>
 #include <chrono>
 #include <sys/mman.h>
+#include <fstream>
 
 //#include "event_loop.h"
 
@@ -101,16 +102,22 @@ void Cam::processRequest(libcamera::Request *request)
 		 * must be mapped by the application
 		 */
 
-        int co = 0;
+        //int co = 0;
+        auto myfile = std::ofstream("file.ppm", std::ios::out | std::ios::binary);
+        myfile << "P6" << "\n" << 640 << " " << 480 << "\n" << 255 << "\n";
+
         libcamera::Span span = Mmap(buffer)[0];
-        for(auto it = span.begin(); it != span.end(); ++it)
-        {
-            co++;
-            if(co > 100)
-                break;
-            std::cout << (int)*it << "/";
-        }
-        std::cout << std::endl;
+        
+        myfile.write((char*)span.data(), span.size_bytes());
+        //for(auto it = span.begin(); it != span.end(); ++it)
+        //{
+            //co++;
+            //if(co > 100)
+            //    break;
+            //std::cout << (int)*it << "/";
+        //}
+        //std::cout << std::endl;
+        myfile.close();
 	}
 
 	/* Re-queue the Request to the camera. */
