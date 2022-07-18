@@ -25,7 +25,7 @@ void requestComplete(libcamera::Request *request)
 
 Cam* Cam::getInstance()
 {
-    return cam;
+    return Cam::cam;
 }
 
 void Cam::processRequest(libcamera::Request *request)
