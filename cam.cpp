@@ -108,7 +108,7 @@ void Cam::processRequest(libcamera::Request *request)
             co++;
             if(co > 100)
                 break;
-            std::cout << *it << "/";
+            std::cout << (int)*it << "/";
         }
         std::cout << std::endl;
 	}
