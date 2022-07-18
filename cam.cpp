@@ -97,7 +97,7 @@ void Cam::processRequest(libcamera::Request *request)
 
 void Cam::init()
 {
-    cam = this;
+    Cam::cam = this;
 
     cameraManager = std::make_shared<libcamera::CameraManager>();
     //libcamera::CameraManager cameraManager;
