@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <iomanip>
+#include "event_loop.h"
 
 EventLoop loop;
 
