@@ -2,9 +2,11 @@
 #include <iostream>
 #include <memory>
 #include <iomanip>
-#include "event_loop.h"
+#include <thread>
+#include <chrono>
+//#include "event_loop.h"
 
-EventLoop loop;
+//EventLoop loop;
 
 void print(int value)
 {
@@ -16,7 +18,9 @@ void requestComplete(libcamera::Request *request)
 	if (request->status() == libcamera::Request::RequestCancelled)
 		return;
 
-	loop.callLater(std::bind(&Cam::processRequest, Cam::getInstance(), request));
+	//loop.callLater(std::bind(&Cam::processRequest, Cam::getInstance(), request));
+
+    Cam::getInstance()->processRequest(request);
 }
 
 Cam* Cam::getInstance()
@@ -210,11 +214,11 @@ void Cam::start()
 
 
 
-
-    loop.timeout(3);
-	ret = loop.exec();
-	std::cout << "Capture ran for " << 3 << " seconds and "
-		  << "stopped with exit status: " << ret << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    //loop.timeout(3);
+	//ret = loop.exec();
+	//std::cout << "Capture ran for " << 3 << " seconds and "
+	//	  << "stopped with exit status: " << ret << std::endl;
 
 
     camera->stop();
