@@ -212,7 +212,7 @@ void Cam::start()
 
 
     loop.timeout(3);
-	int ret = loop.exec();
+	ret = loop.exec();
 	std::cout << "Capture ran for " << 3 << " seconds and "
 		  << "stopped with exit status: " << ret << std::endl;
 
