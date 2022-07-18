@@ -7,6 +7,7 @@
 //#include "event_loop.h"
 
 //EventLoop loop;
+Cam* cam;
 
 void print(int value)
 {
@@ -25,7 +26,7 @@ void requestComplete(libcamera::Request *request)
 
 Cam* Cam::getInstance()
 {
-    return Cam::cam;
+    return cam;
 }
 
 void Cam::processRequest(libcamera::Request *request)
@@ -97,7 +98,7 @@ void Cam::processRequest(libcamera::Request *request)
 
 void Cam::init()
 {
-    Cam::cam = this;
+    cam = this;
 
     cameraManager = std::make_shared<libcamera::CameraManager>();
     //libcamera::CameraManager cameraManager;
