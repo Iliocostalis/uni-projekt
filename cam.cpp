@@ -175,10 +175,10 @@ void Cam::init()
 	//StreamRole::VideoRecording
     config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder, libcamera::StreamRole::Raw});
 	
-	libcamera::Size size(1280, 960);
-    //libcamera::Size size(640, 480);
+	//libcamera::Size size(1280, 960);
+    libcamera::Size size(640, 480);
 
-	if (camera->properties().contains(libcamera::properties::PixelArrayActiveAreas))
+	/*if (camera->properties().contains(libcamera::properties::PixelArrayActiveAreas))
 	{
 		// The idea here is that most sensors will have a 2x2 binned mode that
 		// we can pick up. If it doesn't, well, you can always specify the size
@@ -192,7 +192,7 @@ void Cam::init()
 		//LOG(2, "Viewfinder size chosen is " << size.toString());
 
 		std::cout << "2x3 yes" << std::endl;
-	}
+	}*/
 
 	std::cout << "size: " << size.width << " " << size.height << std::endl;
 
@@ -203,7 +203,7 @@ void Cam::init()
     config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
     config->at(0).bufferCount = 6;
-	config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
+	//config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
 	//config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
     config->transform = transform;
 
@@ -310,7 +310,7 @@ void Cam::start()
 
 
 	libcamera::ControlList controls;
-	int64_t framerate = 60;
+	int64_t framerate = 90;
 	int64_t frame_time = 1000000 / framerate; // in us
 	controls.set(libcamera::controls::FrameDurationLimits, { frame_time, frame_time });
 
