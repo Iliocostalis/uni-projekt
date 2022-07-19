@@ -173,7 +173,7 @@ void Cam::init()
     if(ret)
         throw std::exception();
 
-    config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder});
+    config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder, libcamera::StreamRole::Raw});
 
     libcamera::Size size(640, 480);
     libcamera::Transform transform = libcamera::Transform::Identity;
@@ -182,8 +182,14 @@ void Cam::init()
     //config->at(0).pixelFormat = libcamera::formats::BGR888;
     config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
-    config->at(0).bufferCount = 4;
+    config->at(0).bufferCount = 6;
+	config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
     config->transform = transform;
+
+	// raw
+	config->at(1).pixelFormat = libcamera::formats::SBGGR8;
+	config->at(1).size = size;
+    config->at(1).bufferCount = 6;
 
     switch(config->validate())
     {
