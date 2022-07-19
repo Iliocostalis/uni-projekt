@@ -178,7 +178,8 @@ void Cam::init()
     libcamera::Size size(640, 480);
     libcamera::Transform transform = libcamera::Transform::Identity;
 
-    config->at(0).pixelFormat = libcamera::formats::RGB888;
+    //config->at(0).pixelFormat = libcamera::formats::RGB888;
+    config->at(0).pixelFormat = libcamera::formats::BGR888;
     config->at(0).size = size;
     config->at(0).bufferCount = 4;
     config->transform = transform;
@@ -207,7 +208,7 @@ void Cam::start()
         throw std::exception();
     libcamera::StreamConfiguration &streamConfig = config->at(0);
 
-	camera->requestCompleted.connect(requestComplete);
+	//camera->requestCompleted.connect(requestComplete);
 
     std::unique_ptr<libcamera::FrameBufferAllocator> allocator = std::make_unique<libcamera::FrameBufferAllocator>(camera);
     //libcamera::FrameBufferAllocator *allocator = new libcamera::FrameBufferAllocator(camera);
