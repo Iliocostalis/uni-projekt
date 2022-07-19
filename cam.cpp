@@ -173,13 +173,14 @@ void Cam::init()
     if(ret)
         throw std::exception();
 
-    config = camera->generateConfiguration({libcamera::StreamRole::VideoRecording});
+    config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder});
 
     libcamera::Size size(640, 480);
     libcamera::Transform transform = libcamera::Transform::Identity;
 
     //config->at(0).pixelFormat = libcamera::formats::RGB888;
-    config->at(0).pixelFormat = libcamera::formats::BGR888;
+    //config->at(0).pixelFormat = libcamera::formats::BGR888;
+    config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
     config->at(0).bufferCount = 4;
     config->transform = transform;
@@ -315,11 +316,14 @@ void Cam::start()
 
 
     camera->stop();
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 	allocator->free(stream);
 	//delete allocator;
 	camera->release();
-	//camera.reset();
+	camera.reset();
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 	cameraManager->stop();
+	cameraManager.reset();
 }
 
 void Cam::stop()
