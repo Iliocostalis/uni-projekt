@@ -173,7 +173,7 @@ void Cam::init()
     if(ret)
         throw std::exception();
 
-    config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder});
+    config = camera->generateConfiguration({libcamera::StreamRole::VideoRecording});
 
     libcamera::Size size(640, 480);
     libcamera::Transform transform = libcamera::Transform::Identity;
@@ -318,7 +318,7 @@ void Cam::start()
 	allocator->free(stream);
 	//delete allocator;
 	camera->release();
-	camera.reset();
+	//camera.reset();
 	cameraManager->stop();
 }
 
