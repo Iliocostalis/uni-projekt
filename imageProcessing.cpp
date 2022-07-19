@@ -6,8 +6,8 @@
 namespace ImageProcessing
 {
     int val = 0;
-
-    void process(unsigned char* data, size_t size)
+    
+    void process(uint8_t* data, size_t size)
     {
         std::cout << "image count: " << val << std::endl;
 
