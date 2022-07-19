@@ -1,6 +1,8 @@
 #pragma once
 #include <queue>
 #include <memory>
+#include <list>
+#include <functional>
 #include <libcamera/libcamera.h>
 
 class Cam
@@ -10,10 +12,10 @@ class Cam
     std::queue<libcamera::Request*> requestQueue;
     std::unique_ptr<libcamera::CameraConfiguration> config;
 
-    
-    //void requestComplete(libcamera::Request* request);
-
 public:
+    std::list<std::function<void(void)>> queue;
+
+
     void processRequest(libcamera::Request *request);
     void init();
     void start();

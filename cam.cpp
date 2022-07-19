@@ -6,12 +6,18 @@
 #include <chrono>
 #include <sys/mman.h>
 #include <fstream>
+#include "imageProcessing.h"
+#include <atomic>
+#include <pthread.h>
 
 //#include "event_loop.h"
 
 //EventLoop loop;
 Cam* cam;
 std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_buffers;
+std::atomic_bool cameraRunning(false);
+std::atomic_bool threadRunning(false);
+
 
 void print(int value)
 {
@@ -33,7 +39,21 @@ void requestComplete(libcamera::Request *request)
 
 	//loop.callLater(std::bind(&Cam::processRequest, Cam::getInstance(), request));
 
-    Cam::getInstance()->processRequest(request);
+    //Cam::getInstance()->processRequest(request);
+    Cam::getInstance()->queue.push_back(std::bind(Cam::processRequest, Cam::getInstance(), request));
+}
+
+void* threadFunc(void* arg)
+{
+    while(threadRunning)
+    {
+        Cam* cam = Cam::getInstance();
+        if(cam->queue.size() > 0)
+        {
+            cam->queue.front()();
+            cam->queue.pop_front();
+        }
+    }
 }
 
 Cam* Cam::getInstance()
@@ -57,14 +77,14 @@ void Cam::processRequest(libcamera::Request *request)
 	 * all the metadata for inspection. A custom application can parse each
 	 * of these items and process them according to its needs.
 	 */
-	const libcamera::ControlList &requestMetadata = request->metadata();
-	for (const auto &ctrl : requestMetadata) {
-		const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);
-		const libcamera::ControlValue &value = ctrl.second;
+	//const libcamera::ControlList &requestMetadata = request->metadata();
+	//for (const auto &ctrl : requestMetadata) {
+	//	const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);
+	//	const libcamera::ControlValue &value = ctrl.second;
 
-		std::cout << "\t" << id->name() << " = " << value.toString()
-			  << std::endl;
-	}
+	//	std::cout << "\t" << id->name() << " = " << value.toString()
+	//		  << std::endl;
+	//}
 
 	/*
 	 * Each buffer has its own FrameMetadata to describe its state, or the
@@ -78,24 +98,23 @@ void Cam::processRequest(libcamera::Request *request)
 	 */
 	const libcamera::Request::BufferMap &buffers = request->buffers();
 	for (auto bufferPair : buffers) {
-		// (Unused) Stream *stream = bufferPair.first;
-		libcamera::FrameBuffer *buffer = bufferPair.second;
-		const libcamera::FrameMetadata &metadata = buffer->metadata();
+		libcamera::FrameBuffer* buffer = bufferPair.second;
+		//const libcamera::FrameMetadata &metadata = buffer->metadata();
 
 		/* Print some information about the buffer which has completed. */
-		std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence
-			  << " timestamp: " << metadata.timestamp
-			  << " bytesused: ";
+		//std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence
+		//	  << " timestamp: " << metadata.timestamp
+		//	  << " bytesused: ";
 
-		unsigned int nplane = 0;
-		for (const libcamera::FrameMetadata::Plane &plane : metadata.planes())
-		{
-			std::cout << plane.bytesused;
-			if (++nplane < metadata.planes().size())
-				std::cout << "/";
-		}
-
-		std::cout << std::endl;
+		//unsigned int nplane = 0;
+		//for (const libcamera::FrameMetadata::Plane &plane : metadata.planes())
+		//{
+		//	std::cout << plane.bytesused;
+		//	if (++nplane < metadata.planes().size())
+		//		std::cout << "/";
+		//}
+//
+		//std::cout << std::endl;
         
 		/*
 		 * Image data can be accessed here, but the FrameBuffer
@@ -103,12 +122,14 @@ void Cam::processRequest(libcamera::Request *request)
 		 */
 
         //int co = 0;
-        auto myfile = std::ofstream("file.ppm", std::ios::out | std::ios::binary);
-        myfile << "P6" << "\n" << 640 << " " << 480 << "\n" << 255 << "\n";
+
+        ////auto myfile = std::ofstream("file.ppm", std::ios::out | std::ios::binary);
+        ////myfile << "P6" << "\n" << 640 << " " << 480 << "\n" << 255 << "\n";
 
         libcamera::Span span = Mmap(buffer)[0];
+        ImageProcessing::process(span.data(), span.size_bytes());
         
-        myfile.write((char*)span.data(), span.size_bytes());
+        ////myfile.write((char*)span.data(), span.size_bytes());
         //for(auto it = span.begin(); it != span.end(); ++it)
         //{
             //co++;
@@ -117,12 +138,15 @@ void Cam::processRequest(libcamera::Request *request)
             //std::cout << (int)*it << "/";
         //}
         //std::cout << std::endl;
-        myfile.close();
+        ////myfile.close();
 	}
 
 	/* Re-queue the Request to the camera. */
-	request->reuse(libcamera::Request::ReuseBuffers);
-	camera->queueRequest(request);
+    if(cameraRunning)
+    {
+        request->reuse(libcamera::Request::ReuseBuffers);
+	    camera->queueRequest(request);
+    }
 }
 
 void Cam::init()
@@ -185,7 +209,8 @@ void Cam::start()
 
 	camera->requestCompleted.connect(requestComplete);
 
-    libcamera::FrameBufferAllocator *allocator = new libcamera::FrameBufferAllocator(camera);
+    std::unique_ptr<libcamera::FrameBufferAllocator> allocator = std::make_unique<libcamera::FrameBufferAllocator>(camera);
+    //libcamera::FrameBufferAllocator *allocator = new libcamera::FrameBufferAllocator(camera);
 
 	for (libcamera::StreamConfiguration &cfg : *config) {
 		int ret = allocator->allocate(cfg.stream());
@@ -256,14 +281,32 @@ void Cam::start()
 
 
 
-
+    cameraRunning = true;
     camera->start();
 	for (std::unique_ptr<libcamera::Request> &request : requests)
 		camera->queueRequest(request.get());
 
 
 
+    threadRunning = true;
+    pthread_t thread;
+    int threadRet;
+    threadRet = pthread_create(&thread, NULL, &threadFunc, NULL);
+    if(threadRet != 0)
+    {
+        std::cout << "Thread creation error" << std::endl;
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    cameraRunning = false;
     std::this_thread::sleep_for(std::chrono::seconds(2));
+    threadRunning = false;
+
+    int returnVal;
+    int* returnValP = &returnVal;
+    pthread_join(thread, (void**)&returnValP);
+    
+
     //loop.timeout(3);
 	//ret = loop.exec();
 	//std::cout << "Capture ran for " << 3 << " seconds and "
@@ -272,7 +315,7 @@ void Cam::start()
 
     camera->stop();
 	allocator->free(stream);
-	delete allocator;
+	//delete allocator;
 	camera->release();
 	camera.reset();
 	cameraManager->stop();
@@ -280,5 +323,5 @@ void Cam::start()
 
 void Cam::stop()
 {
-    camera->release();
+    //camera->release();
 }
