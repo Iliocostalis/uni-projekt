@@ -173,9 +173,29 @@ void Cam::init()
     if(ret)
         throw std::exception();
 	//StreamRole::VideoRecording
-    config = camera->generateConfiguration({libcamera::StreamRole::VideoRecording, libcamera::StreamRole::Raw});
+    config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder, libcamera::StreamRole::Raw});
+	
+	libcamera::Size size(1280, 960);
+    //libcamera::Size size(640, 480);
 
-    libcamera::Size size(640, 480);
+	if (camera->properties().contains(libcamera::properties::PixelArrayActiveAreas))
+	{
+		// The idea here is that most sensors will have a 2x2 binned mode that
+		// we can pick up. If it doesn't, well, you can always specify the size
+		// you want exactly with the viewfinder_width/height options_->
+		size = camera->properties().get(libcamera::properties::PixelArrayActiveAreas)[0].size() / 2;
+		// If width and height were given, we might be switching to capture
+		// afterwards - so try to match the field of view.
+		//if (options_->width && options_->height)
+		size = size.boundedToAspectRatio(libcamera::Size(1280, 960));
+		size.alignDownTo(2, 2); // YUV420 will want to be even
+		//LOG(2, "Viewfinder size chosen is " << size.toString());
+
+		std::cout << "2x3 yes" << std::endl;
+	}
+
+	std::cout << "size: " << size.width << " " << size.height << std::endl;
+
     libcamera::Transform transform = libcamera::Transform::Identity;
 
     //config->at(0).pixelFormat = libcamera::formats::RGB888;
@@ -183,7 +203,8 @@ void Cam::init()
     config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
     config->at(0).bufferCount = 6;
-	config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
+	config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
+	//config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
     config->transform = transform;
 
 	// raw
@@ -288,9 +309,13 @@ void Cam::start()
     camera->requestCompleted.connect(requestComplete);
 
 
+	libcamera::ControlList controls;
+	int64_t framerate = 60;
+	int64_t frame_time = 1000000 / framerate; // in us
+	controls.set(libcamera::controls::FrameDurationLimits, { frame_time, frame_time });
 
     cameraRunning = true;
-    camera->start();
+    camera->start(&controls);
 	for (std::unique_ptr<libcamera::Request> &request : requests)
 		camera->queueRequest(request.get());
 
