@@ -172,8 +172,8 @@ void Cam::init()
 
     if(ret)
         throw std::exception();
-
-    config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder, libcamera::StreamRole::Raw});
+	//StreamRole::VideoRecording
+    config = camera->generateConfiguration({libcamera::StreamRole::VideoRecording, libcamera::StreamRole::Raw});
 
     libcamera::Size size(640, 480);
     libcamera::Transform transform = libcamera::Transform::Identity;
