@@ -40,7 +40,7 @@ void requestComplete(libcamera::Request *request)
 	//loop.callLater(std::bind(&Cam::processRequest, Cam::getInstance(), request));
 
     //Cam::getInstance()->processRequest(request);
-    Cam::getInstance()->queue.push_back(std::bind(Cam::processRequest, Cam::getInstance(), request));
+    Cam::getInstance()->queue.push_back(std::bind(&Cam::processRequest, Cam::getInstance(), request));
 }
 
 void* threadFunc(void* arg)
