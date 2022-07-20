@@ -39,15 +39,12 @@ void requestComplete(libcamera::Request *request)
 	if (request->status() == libcamera::Request::RequestCancelled)
 		return;
 
-	//loop.callLater(std::bind(&Cam::processRequest, Cam::getInstance(), request));
-
-    //Cam::getInstance()->processRequest(request);
     Cam::getInstance()->queue.push_back(std::bind(&Cam::processRequest, Cam::getInstance(), request));
 }
 
 void* threadFunc(void* arg)
 {
-    while(threadRunning)
+    while(threadRunning.load(std::memory_order_acquire))
     {
         Cam* cam = Cam::getInstance();
         if(cam->queue.size() > 0)
@@ -144,7 +141,7 @@ void Cam::processRequest(libcamera::Request *request)
 	}
 
 	/* Re-queue the Request to the camera. */
-    if(cameraRunning)
+    if(cameraRunning.load(std::memory_order_acquire))
     {
         request->reuse(libcamera::Request::ReuseBuffers);
 	    camera->queueRequest(request);
@@ -319,7 +316,7 @@ void Cam::start()
 	int64_t frame_time = 1000000 / framerate; // in us
 	controls.set(libcamera::controls::FrameDurationLimits, { frame_time, frame_time });
 
-    cameraRunning = true;
+    cameraRunning.store(true, std::memory_order_release);
     camera->start(&controls);
 	for (std::unique_ptr<libcamera::Request> &request : requests)
 		camera->queueRequest(request.get());
@@ -338,9 +335,9 @@ void Cam::start()
 
 
 	std::this_thread::sleep_for(std::chrono::seconds(3));
-	cameraRunning = false;
+    cameraRunning.store(false, std::memory_order_release);
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    threadRunning = false;
+    threadRunning.store(false, std::memory_order_release);
 
 	std::cout << "Thread exiting" << std::endl;
 
