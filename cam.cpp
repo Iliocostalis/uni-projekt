@@ -42,8 +42,8 @@ void requestComplete(libcamera::Request *request)
     Cam::getInstance()->queue.push_back(std::bind(&Cam::processRequest, Cam::getInstance(), request));
 }
 
-auto old = std::chrono::high_resolution_clock::now();
-uint64_t timeSum = 0;
+//auto old = std::chrono::high_resolution_clock::now();
+//uint64_t timeSum = 0;
 
 void* threadFunc(void* arg)
 {
@@ -57,21 +57,21 @@ void* threadFunc(void* arg)
 
 			
 
-		auto now = std::chrono::high_resolution_clock::now();
-		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - old);
-    	old = now;
-
-		timeSum = timeSum + milliseconds.count();
-
-		if(timeSum > 1000)
-		{
-			timeSum = 0;
-			std::cout << "thread running" << std::endl;
-			std::cout << threadRunning.load(std::memory_order_acquire) << std::endl;
-
-			//if(!threadRunning.load(std::memory_order_acquire))
-			//	return (void*)nullptr;
-		}
+		//auto now = std::chrono::high_resolution_clock::now();
+		//auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - old);
+    	//old = now;
+//
+		//timeSum = timeSum + milliseconds.count();
+//
+		//if(timeSum > 1000)
+		//{
+		//	timeSum = 0;
+		//	std::cout << "thread running" << std::endl;
+		//	std::cout << threadRunning.load(std::memory_order_acquire) << std::endl;
+//
+		//	//if(!threadRunning.load(std::memory_order_acquire))
+		//	//	return (void*)nullptr;
+		//}
 
         Cam* cam = Cam::getInstance();
         if(cam->queue.size() > 0)
