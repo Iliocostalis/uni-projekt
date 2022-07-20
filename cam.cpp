@@ -342,9 +342,13 @@ void Cam::start()
     std::this_thread::sleep_for(std::chrono::seconds(1));
     threadRunning = false;
 
+	std::cout << "Thread exiting" << std::endl;
+
     int returnVal;
     int* returnValP = &returnVal;
     pthread_join(thread, (void**)&returnValP);
+
+	std::cout << "Thread terminated" << std::endl;
 
 
 	//libcamera::StreamConfiguration &streamConfig = config->at(0);
