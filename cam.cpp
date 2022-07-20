@@ -291,7 +291,6 @@ void Cam::start()
 
     libcamera::Stream *stream = streamConfig.stream();
 	const std::vector<std::unique_ptr<libcamera::FrameBuffer>> &buffers = allocator->buffers(stream);
-	std::vector<std::unique_ptr<libcamera::Request>> requests;
 	for (unsigned int i = 0; i < buffers.size(); ++i) {
 		std::unique_ptr<libcamera::Request> request = camera->createRequest();
 		if (!request)
@@ -341,7 +340,7 @@ void Cam::start()
     }
 	std::cout << "Thread created" << std::endl;
 
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 	std::cout << "func end" << std::endl;
 }
 
