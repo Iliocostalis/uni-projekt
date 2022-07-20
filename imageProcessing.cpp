@@ -19,13 +19,13 @@ namespace ImageProcessing
     void init()
     {
         for(auto& image : imageBuffer)
-            image.resize(1280 * 960 * 4);
+            image.resize(IMAGE_WIDTH * IMAGE_HEIGHT * 4);
     }
 
     void process(uint8_t* data, size_t size)
     {
         int nextImageIndex = (currentImageIndex + 1) % imageBuffer.size();
-        for(int i = 0; i < 1280 * 960; ++i)
+        for(int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; ++i)
         {
             imageBuffer[nextImageIndex][i * 4 + 0] = data[i];
             imageBuffer[nextImageIndex][i * 4 + 1] = data[i];
@@ -55,7 +55,7 @@ namespace ImageProcessing
         std::cout << "size: " << size << std::endl;
 
         // Y420
-        if(val == 3332)
+        if(val == 32 && false)
         {
             std::string fileName = std::string("image_") + std::to_string(val);
             

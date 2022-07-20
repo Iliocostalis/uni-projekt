@@ -1,7 +1,17 @@
 #pragma once
 
-#define IMAGE_WIDTH 1280
-#define IMAGE_HEIGHT 960
+#define DEFINED(v) (v == 1)
+
+#define USE_HIGH_RES 0
+#define ADD_RAW_STREAM 1
+
+#if DEFINED(USE_HIGH_RES)
+    #define IMAGE_WIDTH 1280
+    #define IMAGE_HEIGHT 960
+#else
+    #define IMAGE_WIDTH 640
+    #define IMAGE_HEIGHT 480
+#endif
 
 #define WINDOW_WIDTH IMAGE_WIDTH
 #define WINDOW_HEIGHT IMAGE_HEIGHT

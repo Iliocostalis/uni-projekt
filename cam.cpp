@@ -10,16 +10,10 @@
 #include <atomic>
 #include <pthread.h>
 
-//#include "event_loop.h"
-
-//EventLoop loop;
 Cam* cam;
 std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_buffers;
 std::atomic_bool cameraRunning(false);
 std::atomic_bool threadRunning(false);
-
-#define ADD_RAW_STREAM 1
-#define DEFINED(v) (v == 1)
 
 void print(int value)
 {
@@ -75,79 +69,13 @@ void Cam::processRequest(libcamera::Request *request)
 	std::cout << std::endl
 		  << "Request completed: " << request->toString() << std::endl;
 
-	/*
-	 * When a request has completed, it is populated with a metadata control
-	 * list that allows an application to determine various properties of
-	 * the completed request. This can include the timestamp of the Sensor
-	 * capture, or its gain and exposure values, or properties from the IPA
-	 * such as the state of the 3A algorithms.
-	 *
-	 * ControlValue types have a toString, so to examine each request, print
-	 * all the metadata for inspection. A custom application can parse each
-	 * of these items and process them according to its needs.
-	 */
-	//const libcamera::ControlList &requestMetadata = request->metadata();
-	//for (const auto &ctrl : requestMetadata) {
-	//	const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);
-	//	const libcamera::ControlValue &value = ctrl.second;
-
-	//	std::cout << "\t" << id->name() << " = " << value.toString()
-	//		  << std::endl;
-	//}
-
-	/*
-	 * Each buffer has its own FrameMetadata to describe its state, or the
-	 * usage of each buffer. While in our simple capture we only provide one
-	 * buffer per request, a request can have a buffer for each stream that
-	 * is established when configuring the camera.
-	 *
-	 * This allows a viewfinder and a still image to be processed at the
-	 * same time, or to allow obtaining the RAW capture buffer from the
-	 * sensor along with the image as processed by the ISP.
-	 */
 	const libcamera::Request::BufferMap &buffers = request->buffers();
-	for (auto bufferPair : buffers) {
+	for (auto bufferPair : buffers) 
+	{
 		libcamera::FrameBuffer* buffer = bufferPair.second;
-		//const libcamera::FrameMetadata &metadata = buffer->metadata();
-
-		/* Print some information about the buffer which has completed. */
-		//std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence
-		//	  << " timestamp: " << metadata.timestamp
-		//	  << " bytesused: ";
-
-		//unsigned int nplane = 0;
-		//for (const libcamera::FrameMetadata::Plane &plane : metadata.planes())
-		//{
-		//	std::cout << plane.bytesused;
-		//	if (++nplane < metadata.planes().size())
-		//		std::cout << "/";
-		//}
-//
-		//std::cout << std::endl;
-        
-		/*
-		 * Image data can be accessed here, but the FrameBuffer
-		 * must be mapped by the application
-		 */
-
-        //int co = 0;
-
-        ////auto myfile = std::ofstream("file.ppm", std::ios::out | std::ios::binary);
-        ////myfile << "P6" << "\n" << 640 << " " << 480 << "\n" << 255 << "\n";
 
         libcamera::Span span = Mmap(buffer)[0];
         ImageProcessing::process(span.data(), span.size_bytes());
-        
-        ////myfile.write((char*)span.data(), span.size_bytes());
-        //for(auto it = span.begin(); it != span.end(); ++it)
-        //{
-            //co++;
-            //if(co > 100)
-            //    break;
-            //std::cout << (int)*it << "/";
-        //}
-        //std::cout << std::endl;
-        ////myfile.close();
 	}
 
 	/* Re-queue the Request to the camera. */
@@ -189,27 +117,7 @@ void Cam::init()
 	config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder});
 #endif
 
-	libcamera::Size size(1280, 960);
-    //libcamera::Size size(640, 480);
-    libcamera::Size sizePref(size);
-
-	/*if (camera->properties().contains(libcamera::properties::PixelArrayActiveAreas))
-	{
-		// The idea here is that most sensors will have a 2x2 binned mode that
-		// we can pick up. If it doesn't, well, you can always specify the size
-		// you want exactly with the viewfinder_width/height options_->
-		size = camera->properties().get(libcamera::properties::PixelArrayActiveAreas)[0].size() / 2;
-		// If width and height were given, we might be switching to capture
-		// afterwards - so try to match the field of view.
-		//if (options_->width && options_->height)
-		size = size.boundedToAspectRatio(sizePref);
-		size.alignDownTo(2, 2); // YUV420 will want to be even
-		//LOG(2, "Viewfinder size chosen is " << size.toString());
-
-		std::cout << "2x3 yes" << std::endl;
-	}*/
-
-	std::cout << "size: " << size.width << " " << size.height << std::endl;
+	libcamera::Size size(IMAGE_WIDTH, IMAGE_HEIGHT);
 
     libcamera::Transform transform = libcamera::Transform::Identity;
 
@@ -220,8 +128,11 @@ void Cam::init()
     config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
     config->at(0).bufferCount = 6;
-	//config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
-	//config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
+#if(IMAGE_WIDTH >= 1280)
+	config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
+#else
+	config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
+#endif
     config->transform = transform;
 
 	// raw
