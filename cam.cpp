@@ -50,7 +50,12 @@ void* threadFunc(void* arg)
     while(threadRunning.load(std::memory_order_acquire))
     {
 		if(!threadRunning.load(std::memory_order_acquire))
+		{
+			std::cout << "thread exited by if" << std::endl;
 			return (void*)nullptr;
+		}
+
+			
 
 		auto now = std::chrono::high_resolution_clock::now();
 		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - old);
