@@ -19,7 +19,7 @@ namespace ImageProcessing
         std::cout << "image count: " << val << std::endl;
         std::cout << "fps: " << 1.0f / seconds.count() << std::endl;
 
-        if(val == 4)
+        if(val == 433333)
         {
             std::string fileName = std::string("image_") + std::to_string(val);
             
