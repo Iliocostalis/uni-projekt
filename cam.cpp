@@ -203,7 +203,7 @@ void Cam::init()
     config->at(0).pixelFormat = libcamera::formats::SGBRG10;
     //config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
-    config->at(0).bufferCount = 6;
+    config->at(0).bufferCount = 4;
 	//config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
 	//config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
     config->transform = transform;
