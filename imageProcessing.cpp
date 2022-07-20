@@ -18,6 +18,7 @@ namespace ImageProcessing
 
         std::cout << "image count: " << val << std::endl;
         std::cout << "fps: " << 1.0f / seconds.count() << std::endl;
+        std::cout << "size: " << size << std::endl;
 
         if(val == 433333)
         {
