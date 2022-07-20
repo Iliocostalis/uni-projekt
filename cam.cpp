@@ -62,7 +62,7 @@ void* threadFunc(void* arg)
 			std::cout << threadRunning.load(std::memory_order_acquire) << std::endl;
 
 			if(!threadRunning.load(std::memory_order_acquire))
-				return;
+				return (void*)nullptr;
 		}
 
         Cam* cam = Cam::getInstance();
@@ -75,6 +75,7 @@ void* threadFunc(void* arg)
 
     	std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
+	return (void*)nullptr;
 }
 
 Cam* Cam::getInstance()
