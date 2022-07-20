@@ -23,7 +23,7 @@ namespace ImageProcessing
 
         int64_t averageTime = 0;
         for(int i = 0; i < 5; ++i)
-            averageTime += microseconds.count();
+            averageTime += lasts[i].count();
 
         averageTime /= 5;
 
