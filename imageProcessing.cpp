@@ -7,7 +7,11 @@
 namespace ImageProcessing
 {
     int val = 0;
-    std::chrono::time_point<std::chrono::system_clock> last = std::chrono::high_resolution_clock::now();
+    auto last = std::chrono::high_resolution_clock::now();
+
+    std::chrono::microseconds lasts[5];
+    int ind = 0;
+    bool arrayFilled = false;
 
     void process(uint8_t* data, size_t size)
     {
@@ -15,9 +19,19 @@ namespace ImageProcessing
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now - last);
         last = now;
 
+        lasts[ind] = microseconds;
+        ind = (ind + 1) % 5;
+
+        int64_t averageTime = 0;
+        if(arrayFilled)
+            for(int i = 0; i < 5; ++i)
+                averageTime += microseconds.count();
+
+        averageTime /= 5;
+
 
         std::cout << "image count: " << val << std::endl;
-        std::cout << "fps: " << 1000000.0f / microseconds.count() << std::endl;
+        std::cout << "fps: " << 1000000.0f / averageTime << std::endl;
         std::cout << "size: " << size << std::endl;
 
         if(val == 30)
