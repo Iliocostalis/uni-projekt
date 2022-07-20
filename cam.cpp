@@ -200,9 +200,9 @@ void Cam::init()
     libcamera::Transform transform = libcamera::Transform::Identity;
 
     //config->at(0).pixelFormat = libcamera::formats::RGB888;
-    config->at(0).pixelFormat = libcamera::formats::BGR888;
+    //config->at(0).pixelFormat = libcamera::formats::BGR888;
     // err config->at(0).pixelFormat = libcamera::formats::SGBRG10;
-    //config->at(0).pixelFormat = libcamera::formats::YUV420;
+    config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
     config->at(0).bufferCount = 6;
 	//config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
