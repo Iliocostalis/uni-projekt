@@ -323,8 +323,7 @@ void Cam::start()
 
 
 	libcamera::ControlList controls;
-	int64_t framerate = 90;
-	int64_t frame_time = 1000000 / framerate; // in us
+	int64_t frame_time = 1000000 / FRAMERATE; // in us
 	controls.set(libcamera::controls::FrameDurationLimits, { frame_time, frame_time });
 
     cameraRunning.store(true, std::memory_order_release);
@@ -342,6 +341,8 @@ void Cam::start()
         std::cout << "Thread creation error" << std::endl;
     }
 	std::cout << "Thread created" << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
 }
 
 void Cam::stop()

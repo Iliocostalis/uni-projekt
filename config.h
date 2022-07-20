@@ -10,3 +10,5 @@
 #define WINDOW_BORDER 1
 
 #define IMAGE_BUFFER_COUNT 3
+
+#define FRAMERATE 60
