@@ -216,8 +216,8 @@ void Cam::init()
     //config->at(0).pixelFormat = libcamera::formats::RGB888;
     //config->at(0).pixelFormat = libcamera::formats::BGR888;
     // err config->at(0).pixelFormat = libcamera::formats::SGBRG10;
-    config->at(0).pixelFormat = libcamera::formats::R8;
-    //config->at(0).pixelFormat = libcamera::formats::YUV420;
+    //config->at(0).pixelFormat = libcamera::formats::R8;
+    config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
     config->at(0).bufferCount = 6;
 	//config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
@@ -322,7 +322,6 @@ void Cam::start()
     camera->requestCompleted.connect(requestComplete);
 
 
-	libcamera::ControlList controls;
 	int64_t frame_time = 1000000 / FRAMERATE; // in us
 	controls.set(libcamera::controls::FrameDurationLimits, { frame_time, frame_time });
 

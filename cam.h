@@ -13,7 +13,7 @@ class Cam
     std::unique_ptr<libcamera::CameraConfiguration> config;
     std::unique_ptr<libcamera::FrameBufferAllocator> allocator;
     pthread_t thread;
-    
+    libcamera::ControlList controls;
 public:
     std::list<std::function<void(void)>> queue;
 
