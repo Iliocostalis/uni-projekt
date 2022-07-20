@@ -18,6 +18,8 @@ std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_
 std::atomic_bool cameraRunning(false);
 std::atomic_bool threadRunning(false);
 
+#define ADD_RAW_STREAM 0
+#define DEFINED(v) (v == 1)
 
 void print(int value)
 {
@@ -173,8 +175,13 @@ void Cam::init()
     if(ret)
         throw std::exception();
 	//StreamRole::VideoRecording
+
+#if DEFINED(ADD_RAW_STREAM)
     config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder, libcamera::StreamRole::Raw});
-	
+#else
+	config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder});
+#endif
+
 	libcamera::Size size(1280, 960);
     //libcamera::Size size(640, 480);
     libcamera::Size sizePref(size);
@@ -210,9 +217,11 @@ void Cam::init()
     config->transform = transform;
 
 	// raw
+#if DEFINED(ADD_RAW_STREAM)
 	config->at(1).pixelFormat = libcamera::formats::SBGGR8;
 	config->at(1).size = size;
     config->at(1).bufferCount = 6;
+#endif
 
     switch(config->validate())
     {
