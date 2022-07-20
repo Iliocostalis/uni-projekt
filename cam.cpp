@@ -339,9 +339,6 @@ void Cam::start()
         std::cout << "Thread creation error" << std::endl;
     }
 	std::cout << "Thread created" << std::endl;
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-	std::cout << "func end" << std::endl;
 }
 
 void Cam::stop()
