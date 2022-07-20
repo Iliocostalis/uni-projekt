@@ -1,0 +1,12 @@
+#pragma once
+
+#define IMAGE_WIDTH 1280
+#define IMAGE_HEIGHT 960
+
+#define WINDOW_WIDTH IMAGE_WIDTH
+#define WINDOW_HEIGHT IMAGE_HEIGHT
+#define WINDOW_X 0
+#define WINDOW_Y 0
+#define WINDOW_BORDER 1
+
+#define IMAGE_BUFFER_COUNT 3

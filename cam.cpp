@@ -342,10 +342,10 @@ void Cam::start()
         std::cout << "Thread creation error" << std::endl;
     }
 	std::cout << "Thread created" << std::endl;
+}
 
-
-
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+void Cam::stop()
+{
     cameraRunning.store(false, std::memory_order_release);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     threadRunning.store(false, std::memory_order_release);
@@ -357,30 +357,6 @@ void Cam::start()
     pthread_join(thread, (void**)&returnValP);
 
 	std::cout << "Thread terminated" << std::endl;
-
-
-	//libcamera::StreamConfiguration &streamConfig = config->at(0);
-	//libcamera::Stream *stream = streamConfig.stream();
-
-	camera->stop();
-	allocator->free(stream);
-	allocator.reset();
-	camera->release();
-	camera.reset();
-	cameraManager->stop();
-	cameraManager.reset();
-}
-
-void Cam::stop()
-{
-    cameraRunning = false;
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    threadRunning = false;
-
-    int returnVal;
-    int* returnValP = &returnVal;
-    pthread_join(thread, (void**)&returnValP);
-
 
 	libcamera::StreamConfiguration &streamConfig = config->at(0);
 	libcamera::Stream *stream = streamConfig.stream();
