@@ -2,13 +2,13 @@
 #include <iomanip>
 #include <thread>
 
-//#include <X11/Xlib.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "config.h"
 #include "cam.h"
 #include "imageProcessing.h"
+#include <X11/Xlib.h>
 
 int main()
 {
