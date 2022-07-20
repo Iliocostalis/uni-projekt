@@ -342,6 +342,7 @@ void Cam::start()
 	std::cout << "Thread created" << std::endl;
 
     std::this_thread::sleep_for(std::chrono::seconds(3));
+	std::cout << "func end" << std::endl;
 }
 
 void Cam::stop()

@@ -53,6 +53,7 @@ int main()
 	Cam cam;
 	cam.init();
 	cam.start();
+	std::cout << "func finished" << std::endl;
 
 	auto start = std::chrono::high_resolution_clock::now();
 	auto last = std::chrono::high_resolution_clock::now();
