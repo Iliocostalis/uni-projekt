@@ -51,7 +51,7 @@ void* threadFunc(void* arg)
     {
 		if(!threadRunning.load(std::memory_order_acquire))
 			return (void*)nullptr;
-			
+
 		auto now = std::chrono::high_resolution_clock::now();
 		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - old);
     	old = now;
@@ -64,8 +64,8 @@ void* threadFunc(void* arg)
 			std::cout << "thread running" << std::endl;
 			std::cout << threadRunning.load(std::memory_order_acquire) << std::endl;
 
-			if(!threadRunning.load(std::memory_order_acquire))
-				return (void*)nullptr;
+			//if(!threadRunning.load(std::memory_order_acquire))
+			//	return (void*)nullptr;
 		}
 
         Cam* cam = Cam::getInstance();
