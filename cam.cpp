@@ -43,7 +43,7 @@ void requestComplete(libcamera::Request *request)
 }
 
 auto old = std::chrono::high_resolution_clock::now();
-uint64_t time = 0;
+uint64_t timeSum = 0;
 
 void* threadFunc(void* arg)
 {
@@ -53,11 +53,11 @@ void* threadFunc(void* arg)
 		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - old);
     	old = now;
 
-		time += milliseconds.count();
+		timeSum += milliseconds.count();
 
-		if(time > 1000)
+		if(timeSum > 1000)
 		{
-			time = 0;
+			timeSum = 0;
 			std::cout << "thread running" << std::endl;
 		}
 
