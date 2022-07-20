@@ -12,12 +12,12 @@ namespace ImageProcessing
     void process(uint8_t* data, size_t size)
     {
         auto now = std::chrono::high_resolution_clock::now();
-        auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now - last);
+        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now - last);
         last = now;
 
 
         std::cout << "image count: " << val << std::endl;
-        std::cout << "fps: " << 1.0f / seconds.count() << std::endl;
+        std::cout << "fps: " << 1000000.0f / microseconds.count() << std::endl;
         std::cout << "size: " << size << std::endl;
 
         if(val == 30)
@@ -29,8 +29,8 @@ namespace ImageProcessing
             size = 640 * 480 / 2;
             for(int i = 0; i < size; ++i)
             {
-                uint8_t valA = (data[i] & 0xf0) >> 4;
-                uint8_t valB = (data[i] & 0x0f);
+                uint8_t valA = (data[i] & 0xf0);
+                uint8_t valB = (data[i] & 0x0f) << 4;
 
                 myfile.write((char*)&valA, 1);
                 myfile.write((char*)&valA, 1);
