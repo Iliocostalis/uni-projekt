@@ -67,6 +67,7 @@ int main()
 
 		if(milliseconds.count() > 50)
 		{
+			std::cout << "refresh window" << std::endl;
 			XPutImage(display, window, gc, ImageProcessing::images[ImageProcessing::currentImageIndex], 0, 0, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
     		XFlush(display);
 		}
