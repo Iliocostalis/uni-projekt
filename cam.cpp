@@ -322,6 +322,7 @@ void Cam::start()
     {
         std::cout << "Thread creation error" << std::endl;
     }
+	std::cout << "Thread created" << std::endl;
 }
 
 void Cam::stop()
