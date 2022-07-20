@@ -323,6 +323,31 @@ void Cam::start()
         std::cout << "Thread creation error" << std::endl;
     }
 	std::cout << "Thread created" << std::endl;
+
+
+
+	std::this_thread::sleep_for(std::chrono::seconds(3));
+	cameraRunning = false;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    threadRunning = false;
+
+    int returnVal;
+    int* returnValP = &returnVal;
+    pthread_join(thread, (void**)&returnValP);
+
+
+	libcamera::StreamConfiguration &streamConfig = config->at(0);
+	libcamera::Stream *stream = streamConfig.stream();
+
+	camera->stop();
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	allocator->free(stream);
+	allocator.reset();
+	camera->release();
+	camera.reset();
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	cameraManager->stop();
+	cameraManager.reset();
 }
 
 void Cam::stop()
