@@ -53,7 +53,7 @@ void* threadFunc(void* arg)
 		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - old);
     	old = now;
 
-		timeSum += milliseconds.count();
+		timeSum = timeSum + milliseconds.count();
 
 		if(timeSum > 1000)
 		{
@@ -69,6 +69,8 @@ void* threadFunc(void* arg)
             cam->queue.front()();
             cam->queue.pop_front();
         }
+
+    	std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
 
