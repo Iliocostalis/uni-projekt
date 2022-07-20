@@ -42,10 +42,25 @@ void requestComplete(libcamera::Request *request)
     Cam::getInstance()->queue.push_back(std::bind(&Cam::processRequest, Cam::getInstance(), request));
 }
 
+auto old = std::chrono::high_resolution_clock::now();
+uint64_t time = 0;
+
 void* threadFunc(void* arg)
 {
     while(threadRunning.load(std::memory_order_acquire))
     {
+		auto now = std::chrono::high_resolution_clock::now();
+		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - old);
+    	old = now;
+
+		time += milliseconds.count();
+
+		if(time > 1000)
+		{
+			time = 0;
+			std::cout << "thread running" << std::endl;
+		}
+
         Cam* cam = Cam::getInstance();
         if(cam->queue.size() > 0)
         {
