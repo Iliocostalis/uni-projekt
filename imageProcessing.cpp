@@ -20,6 +20,8 @@ namespace ImageProcessing
         last = now;
 
         lasts[ind] = microseconds;
+        if(ind == 5)
+            arrayFilled = true;
         ind = (ind + 1) % 5;
 
         int64_t averageTime = 0;
