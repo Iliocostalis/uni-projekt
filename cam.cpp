@@ -355,12 +355,10 @@ void Cam::start()
 	//libcamera::Stream *stream = streamConfig.stream();
 
 	camera->stop();
-	std::this_thread::sleep_for(std::chrono::seconds(1));
 	allocator->free(stream);
 	allocator.reset();
 	camera->release();
 	camera.reset();
-	std::this_thread::sleep_for(std::chrono::seconds(1));
 	cameraManager->stop();
 	cameraManager.reset();
 }
@@ -380,12 +378,10 @@ void Cam::stop()
 	libcamera::Stream *stream = streamConfig.stream();
 
 	camera->stop();
-	std::this_thread::sleep_for(std::chrono::seconds(1));
 	allocator->free(stream);
 	allocator.reset();
 	camera->release();
 	camera.reset();
-	std::this_thread::sleep_for(std::chrono::seconds(1));
 	cameraManager->stop();
 	cameraManager.reset();
 }
