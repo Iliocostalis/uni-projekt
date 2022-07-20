@@ -12,7 +12,7 @@
 namespace ImageProcessing
 {
     extern std::array<std::vector<char>, IMAGE_BUFFER_COUNT> imageBuffer;
-    extern std::atomic<int> currentImageIndex = 0;
+    extern std::atomic<int> currentImageIndex;
     extern std::array<XImage*, IMAGE_BUFFER_COUNT> images;
 
     extern void init();
