@@ -18,7 +18,7 @@ std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_
 std::atomic_bool cameraRunning(false);
 std::atomic_bool threadRunning(false);
 
-#define ADD_RAW_STREAM 0
+#define ADD_RAW_STREAM 1
 #define DEFINED(v) (v == 1)
 
 void print(int value)
