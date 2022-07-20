@@ -55,7 +55,6 @@ int main()
 	cam.init();
 	cam.start();
 
-#if DEFINED(SHOW_PREVIEW)
 	auto start = std::chrono::high_resolution_clock::now();
 	auto last = std::chrono::high_resolution_clock::now();
     while(true)
@@ -70,13 +69,17 @@ int main()
 		if(milliseconds.count() > 50)
 		{
 			last = now;
+
+#if DEFINED(SHOW_PREVIEW)
 			std::cout << "refresh window" << std::endl;
 			std::cout << "image index: " << ImageProcessing::currentImageIndex << std::endl;
 			XPutImage(display, window, gc, ImageProcessing::images[ImageProcessing::currentImageIndex], 0, 0, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
     		XFlush(display);
+#endif
 		}
     }
 
+#if DEFINED(SHOW_PREVIEW)
     /* event loop 
     while (1) {
             XNextEvent(display, &event);
@@ -88,8 +91,6 @@ int main()
                             goto breakout;
                     case Expose:
                             XPutImage(display, window, gc, image, 0, 0, 0, 0, width, height);
-
-
 
             }
     }*/
