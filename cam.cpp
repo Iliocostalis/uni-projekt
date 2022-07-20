@@ -60,6 +60,9 @@ void* threadFunc(void* arg)
 			timeSum = 0;
 			std::cout << "thread running" << std::endl;
 			std::cout << threadRunning.load(std::memory_order_acquire) << std::endl;
+
+			if(!threadRunning.load(std::memory_order_acquire))
+				return;
 		}
 
         Cam* cam = Cam::getInstance();
