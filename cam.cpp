@@ -236,10 +236,7 @@ void Cam::start()
         throw std::exception();
     libcamera::StreamConfiguration &streamConfig = config->at(0);
 
-	//camera->requestCompleted.connect(requestComplete);
-
-    std::unique_ptr<libcamera::FrameBufferAllocator> allocator = std::make_unique<libcamera::FrameBufferAllocator>(camera);
-    //libcamera::FrameBufferAllocator *allocator = new libcamera::FrameBufferAllocator(camera);
+    allocator = std::make_unique<libcamera::FrameBufferAllocator>(camera);
 
 	for (libcamera::StreamConfiguration &cfg : *config) {
 		int ret = allocator->allocate(cfg.stream());
@@ -303,9 +300,6 @@ void Cam::start()
 	}
 
 
-    //camera->requestCompleted.connect(requestComplete);
-    //camera->requestCompleted.connect([this](libcamera::Request *request){requestComplete(request);});
-    //camera->requestCompleted.connect(std::bind(&Cam::requestComplete, this, std::placeholders::_1));
     camera->requestCompleted.connect(requestComplete);
 
 
@@ -322,42 +316,35 @@ void Cam::start()
 
 
     threadRunning = true;
-    pthread_t thread;
     int threadRet;
     threadRet = pthread_create(&thread, NULL, &threadFunc, NULL);
     if(threadRet != 0)
     {
         std::cout << "Thread creation error" << std::endl;
     }
+}
 
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+void Cam::stop()
+{
     cameraRunning = false;
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     threadRunning = false;
 
     int returnVal;
     int* returnValP = &returnVal;
     pthread_join(thread, (void**)&returnValP);
-    
-
-    //loop.timeout(3);
-	//ret = loop.exec();
-	//std::cout << "Capture ran for " << 3 << " seconds and "
-	//	  << "stopped with exit status: " << ret << std::endl;
 
 
-    camera->stop();
+	libcamera::StreamConfiguration &streamConfig = config->at(0);
+	libcamera::Stream *stream = streamConfig.stream();
+
+	camera->stop();
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	allocator->free(stream);
-	//delete allocator;
+	allocator.reset();
 	camera->release();
 	camera.reset();
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	cameraManager->stop();
 	cameraManager.reset();
-}
-
-void Cam::stop()
-{
-    //camera->release();
 }
