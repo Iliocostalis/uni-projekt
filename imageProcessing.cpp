@@ -11,7 +11,6 @@ namespace ImageProcessing
 
     std::chrono::microseconds lasts[5];
     int ind = 0;
-    bool arrayFilled = false;
 
     void process(uint8_t* data, size_t size)
     {
@@ -20,14 +19,11 @@ namespace ImageProcessing
         last = now;
 
         lasts[ind] = microseconds;
-        if(ind == 5)
-            arrayFilled = true;
         ind = (ind + 1) % 5;
 
         int64_t averageTime = 0;
-        if(arrayFilled)
-            for(int i = 0; i < 5; ++i)
-                averageTime += microseconds.count();
+        for(int i = 0; i < 5; ++i)
+            averageTime += microseconds.count();
 
         averageTime /= 5;
 
