@@ -304,7 +304,7 @@ void Cam::start()
 
 
 	libcamera::ControlList controls;
-	int64_t framerate = 90;
+	int64_t framerate = 120;
 	int64_t frame_time = 1000000 / framerate; // in us
 	controls.set(libcamera::controls::FrameDurationLimits, { frame_time, frame_time });
 

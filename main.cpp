@@ -10,9 +10,9 @@ int main()
 	cam.start();
 
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+	//std::this_thread::sleep_for(std::chrono::seconds(3));
 
-	cam.stop();
+	//cam.stop();
 	
 	return 0;
 }
