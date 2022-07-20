@@ -336,8 +336,8 @@ void Cam::start()
     pthread_join(thread, (void**)&returnValP);
 
 
-	libcamera::StreamConfiguration &streamConfig = config->at(0);
-	libcamera::Stream *stream = streamConfig.stream();
+	//libcamera::StreamConfiguration &streamConfig = config->at(0);
+	//libcamera::Stream *stream = streamConfig.stream();
 
 	camera->stop();
 	std::this_thread::sleep_for(std::chrono::seconds(1));
