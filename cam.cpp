@@ -177,8 +177,9 @@ void Cam::init()
 	
 	//libcamera::Size size(1280, 960);
     libcamera::Size size(640, 480);
+    libcamera::Size sizePref(size);
 
-	/*if (camera->properties().contains(libcamera::properties::PixelArrayActiveAreas))
+	if (camera->properties().contains(libcamera::properties::PixelArrayActiveAreas))
 	{
 		// The idea here is that most sensors will have a 2x2 binned mode that
 		// we can pick up. If it doesn't, well, you can always specify the size
@@ -187,12 +188,12 @@ void Cam::init()
 		// If width and height were given, we might be switching to capture
 		// afterwards - so try to match the field of view.
 		//if (options_->width && options_->height)
-		size = size.boundedToAspectRatio(libcamera::Size(1280, 960));
+		size = size.boundedToAspectRatio(sizePref);
 		size.alignDownTo(2, 2); // YUV420 will want to be even
 		//LOG(2, "Viewfinder size chosen is " << size.toString());
 
 		std::cout << "2x3 yes" << std::endl;
-	}*/
+	}
 
 	std::cout << "size: " << size.width << " " << size.height << std::endl;
 
