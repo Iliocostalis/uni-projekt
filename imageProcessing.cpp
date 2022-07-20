@@ -32,7 +32,8 @@ namespace ImageProcessing
         std::cout << "fps: " << 1000000.0f / averageTime << std::endl;
         std::cout << "size: " << size << std::endl;
 
-        if(val == 30)
+        // Y420
+        if(val == 3220)
         {
             std::string fileName = std::string("image_") + std::to_string(val);
             
