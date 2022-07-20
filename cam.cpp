@@ -66,6 +66,7 @@ void* threadFunc(void* arg)
         {
 			std::cout << "thread working" << std::endl;
 			std::cout << timeSum << std::endl;
+			std::cout << threadRunning.load(std::memory_order_acquire) << std::endl;
             cam->queue.front()();
             cam->queue.pop_front();
         }
