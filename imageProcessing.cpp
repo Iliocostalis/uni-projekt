@@ -33,24 +33,34 @@ namespace ImageProcessing
         std::cout << "size: " << size << std::endl;
 
         // Y420
-        if(val == 3220)
+        if(val == 32)
         {
             std::string fileName = std::string("image_") + std::to_string(val);
             
             auto myfile = std::ofstream(fileName, std::ios::out | std::ios::binary);
-            myfile << "P6" << "\n" << 640 << " " << 480 << "\n" << 255 << "\n";
-            size = 640 * 480 / 2;
+            //myfile << "P6" << "\n" << 640 << " " << 480 << "\n" << 255 << "\n";
+            //size = 640 * 480 / 2;
+            //for(int i = 0; i < size; ++i)
+            //{
+            //    uint8_t valA = (data[i] & 0xf0);
+            //    uint8_t valB = (data[i] & 0x0f) << 4;
+//
+            //    myfile.write((char*)&valA, 1);
+            //    myfile.write((char*)&valA, 1);
+            //    myfile.write((char*)&valA, 1);
+            //    myfile.write((char*)&valB, 1);
+            //    myfile.write((char*)&valB, 1);
+            //    myfile.write((char*)&valB, 1);
+            //}
+
+            myfile << "P6" << "\n" << 1280 << " " << 960 << "\n" << 255 << "\n";
+            size = 1280 * 960;
             for(int i = 0; i < size; ++i)
             {
-                uint8_t valA = (data[i] & 0xf0);
-                uint8_t valB = (data[i] & 0x0f) << 4;
-
+                uint8_t valA = data[i];
                 myfile.write((char*)&valA, 1);
                 myfile.write((char*)&valA, 1);
                 myfile.write((char*)&valA, 1);
-                myfile.write((char*)&valB, 1);
-                myfile.write((char*)&valB, 1);
-                myfile.write((char*)&valB, 1);
             }
             myfile.close();
         }
