@@ -62,7 +62,7 @@ int main()
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - last);
         auto runningTime = std::chrono::duration_cast<std::chrono::seconds>(now - start);
 
-		if(runningTime.count() >= 3)
+		if(runningTime.count() >= 10)
 			break;
 
 		if(milliseconds.count() > 50)
