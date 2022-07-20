@@ -18,12 +18,15 @@ namespace ImageProcessing
 
     void init()
     {
+#if DEFINED(SHOW_PREVIEW)
         for(auto& image : imageBuffer)
             image.resize(IMAGE_WIDTH * IMAGE_HEIGHT * 4);
+#endif
     }
 
     void process(uint8_t* data, size_t size)
     {
+#if DEFINED(SHOW_PREVIEW)
         int nextImageIndex = (currentImageIndex + 1) % imageBuffer.size();
         for(int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; ++i)
         {
@@ -33,6 +36,7 @@ namespace ImageProcessing
             imageBuffer[nextImageIndex][i * 4 + 3] = data[i];
         }
         currentImageIndex = nextImageIndex;
+#endif
 
 
 

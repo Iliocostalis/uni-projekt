@@ -13,6 +13,7 @@ int main()
 {
 	ImageProcessing::init();
 
+#if DEFINED(SHOW_PREVIEW)
 	Display *display;
     Window window;
     XEvent event;
@@ -47,13 +48,14 @@ int main()
 	for(int i = 0; i < IMAGE_BUFFER_COUNT; ++i)
 		ImageProcessing::images[i] = XCreateImage(display, DefaultVisual(display, 0), 24, ZPixmap, 0, ImageProcessing::imageBuffer[i].data(), IMAGE_WIDTH, IMAGE_HEIGHT, 32, 0);
 
-
+#endif
 
 
 	Cam cam;
 	cam.init();
 	cam.start();
 
+#if DEFINED(SHOW_PREVIEW)
 	auto start = std::chrono::high_resolution_clock::now();
 	auto last = std::chrono::high_resolution_clock::now();
     while(true)
@@ -74,7 +76,6 @@ int main()
     		XFlush(display);
 		}
     }
-	cam.stop();
 
     /* event loop 
     while (1) {
@@ -100,7 +101,9 @@ breakout:
     /* close connection to server */
     XCloseDisplay(display);
 	
+#endif
 
+	cam.stop();
 
 	//std::this_thread::sleep_for(std::chrono::seconds(3));
 
