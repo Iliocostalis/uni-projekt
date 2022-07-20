@@ -67,8 +67,8 @@ int main()
 
 		if(milliseconds.count() > 50)
 		{
-			//XPutImage(display, window, gc, ImageProcessing::images[ImageProcessing::currentImageIndex], 0, 0, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-    		//XFlush(display);
+			XPutImage(display, window, gc, ImageProcessing::images[ImageProcessing::currentImageIndex], 0, 0, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+    		XFlush(display);
 		}
     }
 	cam.stop();
@@ -92,10 +92,10 @@ int main()
 breakout:
 
     /* destroy window */
-    //XDestroyWindow(display, window);
+    XDestroyWindow(display, window);
 
     /* close connection to server */
-    //XCloseDisplay(display);
+    XCloseDisplay(display);
 	
 
 
