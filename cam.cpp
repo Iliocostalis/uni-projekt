@@ -64,6 +64,8 @@ void* threadFunc(void* arg)
         Cam* cam = Cam::getInstance();
         if(cam->queue.size() > 0)
         {
+			std::cout << "thread working" << std::endl;
+			std::cout << timeSum << std::endl;
             cam->queue.front()();
             cam->queue.pop_front();
         }
