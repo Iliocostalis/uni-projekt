@@ -12,7 +12,7 @@ namespace ImageProcessing
     std::chrono::microseconds lasts[5];
     int ind = 0;
 
-    //std::array<std::vector<char>, IMAGE_BUFFER_COUNT> imageBuffer;
+    std::array<std::vector<char>, IMAGE_BUFFER_COUNT> imageBuffer;
     //std::atomic<int> currentImageIndex = 0;
     //std::array<XImage*, IMAGE_BUFFER_COUNT> images;
 
