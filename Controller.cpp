@@ -23,7 +23,7 @@ int handle;
 #define AX_PING 1
 #define BROADCASTID 0xFE
 
-char* buffer[32];
+uint8_t buffer[32];
 
 void setDirection(bool out)
 {
@@ -79,16 +79,16 @@ void getStatus(int index)
 void ping(int index)
 {
     setDirection(true);
-	char checksum = 255 - ((index + AX_PING + 2)%256); // calculate the checksum	
+	uint8_t checksum = 255 - ((index + AX_PING + 2)%256); // calculate the checksum	
     buffer[0] = 0xff;
     buffer[1] = 0xff;
-    buffer[2] = (char) index;
+    buffer[2] = (uint8_t) index;
     buffer[3] = 0x02;
-    buffer[4] = (char) AX_PING;
+    buffer[4] = (uint8_t) AX_PING;
     buffer[5] = checksum;
 	//outData = chr(0xFF)+chr(0xFF)+chr(index)+chr(0x02)+chr(AX_PING)+chr(checksum);	// build a string with the first part
 	//port.write(outData)	// write it out of the serial port	
-    serWrite(handle, buffer, 6);
+    serWrite(handle, (char*)buffer, 6);
 	getStatus(index);
 }
 
