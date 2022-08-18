@@ -18,7 +18,7 @@ void* loop(void* arg)
 {
 	auto start = std::chrono::high_resolution_clock::now();
 	auto last = std::chrono::high_resolution_clock::now();
-    while(true)
+    while(isRunning)
     {
 		auto now = std::chrono::high_resolution_clock::now();
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - last);

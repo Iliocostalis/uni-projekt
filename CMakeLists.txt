@@ -12,5 +12,5 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/libcamera/build/include/")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/libcamera/include/")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
-add_executable(cam_code Main.cpp Cam.cpp ImageProcessing.cpp Preview.cpp)
+add_executable(cam_code Main.cpp Cam.cpp ImageProcessing.cpp Preview.cpp Controller.cpp)
 target_link_libraries(cam_code libcamera.so libcamera-base.so pthread pigpio X11)
