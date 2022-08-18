@@ -2,6 +2,7 @@
 #include <pigpio.h>
 #include <thread>
 #include <chrono>
+#include <iostream>
 
 struct Car
 {
@@ -41,7 +42,7 @@ void getStatus(int index)
     int count = 0;
     while(true)
     {
-        if(serDataAvailable)
+        if(serDataAvailable(handle))
             break;
 
         if(count >= 30000)
@@ -53,7 +54,7 @@ void getStatus(int index)
 
     int b1 = serReadByte(handle);
 
-    if(b != 0xff)
+    if(b1 != 0xff)
     {
         std::cout << "no response" << std::endl;
         return;
@@ -77,7 +78,7 @@ void getStatus(int index)
 
 void ping(int index)
 {
-    setDirection(out);
+    setDirection(true);
 	uint8_t checksum = 255 - ((index + AX_PING + 2)%256); // calculate the checksum	
     buffer[0] = 0xff;
     buffer[1] = 0xff;
@@ -86,7 +87,7 @@ void ping(int index)
     buffer[4] = (uint8_t) AX_PING;
     buffer[5] = checksum;
 	//outData = chr(0xFF)+chr(0xFF)+chr(index)+chr(0x02)+chr(AX_PING)+chr(checksum);	// build a string with the first part
-	port.write(outData)	// write it out of the serial port	
+	//port.write(outData)	// write it out of the serial port	
     serWrite(handle, buffer, 6);
 	getStatus(index);
 }

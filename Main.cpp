@@ -44,7 +44,7 @@ int main()
 {
 	Controller::getInstance()->start();
 	Controller::getInstance()->stop();
-	return;
+	return 0;
 
 	ImageProcessing::init();
 
