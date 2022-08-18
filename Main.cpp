@@ -18,10 +18,8 @@ int main()
     Preview::getInstance()->open();
 #endif
 
-
-	Cam cam;
-	cam.init();
-	cam.start();
+	Cam::getInstance()->init();
+	Cam::getInstance()->start();
 
 	auto start = std::chrono::high_resolution_clock::now();
 	auto last = std::chrono::high_resolution_clock::now();
@@ -50,7 +48,7 @@ int main()
     Preview::getInstance()->close();
 #endif
 
-	cam.stop();
+	Cam::getInstance()->stop();
 	
 	return 0;
 }
