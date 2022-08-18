@@ -29,8 +29,10 @@ void* loop(void* arg)
 			last = now;
 
 #if DEFINED(SHOW_PREVIEW)
+#if DEFINED(PREVIEW_LOG)
 			std::cout << "refresh window" << std::endl;
 			std::cout << "image index: " << ImageProcessing::currentImageIndex << std::endl;
+#endif
 			Preview::getInstance()->refresh();
 #endif
 		}
@@ -60,6 +62,8 @@ int main()
 			isRunning = false;
 			break;
 		}
+		else
+			std::cout << line << std::endl;
     }
 
 	void* returnValue;

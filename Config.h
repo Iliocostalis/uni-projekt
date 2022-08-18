@@ -6,6 +6,7 @@
 #define ADD_RAW_STREAM 1
 #define SHOW_PREVIEW 1
 #define CAMERA_LOG 0
+#define PREVIEW_LOG 0
 
 #if DEFINED(USE_HIGH_RES)
     #define IMAGE_WIDTH 1280
