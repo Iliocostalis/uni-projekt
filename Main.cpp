@@ -57,15 +57,16 @@ int main()
 		std::string line;
 		std::getline( std::cin, line );
 
+		std::cout << line << std::endl;
 		if(line == "stop")
 		{
+			std::cout << "stop!!" << std::endl;
 			isRunning = false;
 			break;
 		}
-		else
-			std::cout << line << std::endl;
     }
 
+			std::cout << "end!!" << std::endl;
 	void* returnValue;
 	pthread_join(loopThread, &returnValue);
 
