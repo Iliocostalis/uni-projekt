@@ -1,5 +1,6 @@
 #include <Preview.h>
 #include <ImageProcessing.h>
+#include <iostream>
 
 Preview::Preview(){}
 
@@ -14,7 +15,7 @@ void Preview::open()
     display = XOpenDisplay(NULL);
     if (display == NULL) 
 	{
-		fprintf(stderr, "Cannot open display\n");
+        std::cout << "Cannot open display" << std::endl;
 		exit(1);
     }
 

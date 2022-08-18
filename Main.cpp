@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
-#include <thread>
+#include <pthread.h>
+#include <chrono>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +10,11 @@
 #include <Cam.h>
 #include <ImageProcessing.h>
 #include <Preview.h>
+
+void loop()
+{
+
+}
 
 int main()
 {
