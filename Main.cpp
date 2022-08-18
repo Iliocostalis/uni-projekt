@@ -11,7 +11,7 @@
 #include <ImageProcessing.h>
 #include <Preview.h>
 
-bool isRunning = true;
+std::atomic_bool isRunning(false);
 pthread_t loopThread;
 
 void* loop(void* arg)
@@ -66,7 +66,7 @@ int main()
 		}
     }
 
-			std::cout << "end!!" << std::endl;
+	std::cout << "end!!" << std::endl;
 	void* returnValue;
 	pthread_join(loopThread, &returnValue);
 
