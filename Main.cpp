@@ -10,6 +10,7 @@
 #include <Cam.h>
 #include <ImageProcessing.h>
 #include <Preview.h>
+#include <Controller.h>
 
 std::atomic_bool isRunning(false);
 pthread_t loopThread;
@@ -41,6 +42,10 @@ void* loop(void* arg)
 
 int main()
 {
+	Controller::getInstance()->start();
+	Controller::getInstance()->stop();
+	return;
+
 	ImageProcessing::init();
 
 #if DEFINED(SHOW_PREVIEW)
