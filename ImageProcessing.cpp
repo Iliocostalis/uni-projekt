@@ -52,10 +52,11 @@ namespace ImageProcessing
 
         averageTime /= 5;
 
-
+#if DEFINED(CAMERA_LOG)
         std::cout << "image count: " << val << std::endl;
         std::cout << "fps: " << 1000000.0f / averageTime << std::endl;
         std::cout << "size: " << size << std::endl;
+#endif
 
         // Y420
         if(val == 32 && false)

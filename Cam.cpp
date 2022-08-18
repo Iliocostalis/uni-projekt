@@ -62,8 +62,10 @@ Cam* Cam::getInstance()
 
 void Cam::processRequest(libcamera::Request *request)
 {
+#if DEFINED(CAMERA_LOG)
 	std::cout << std::endl
 		  << "Request completed: " << request->toString() << std::endl;
+#endif
 
 	const libcamera::Request::BufferMap &buffers = request->buffers();
 	for (auto bufferPair : buffers) 
