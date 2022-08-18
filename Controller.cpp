@@ -109,6 +109,12 @@ void Controller::start()
     handle = serOpen("/dev/ttyAMA0", 1000000, 0);
     gpioSetMode(PIN, PI_OUTPUT);
 
+    if(handle < 0)
+    {
+        std::cout << handle << std::endl;
+        return;
+    }
+
     for(int i = 0; i <= 255; i++)
     {
         ping(i);
