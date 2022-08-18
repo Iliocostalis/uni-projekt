@@ -39,16 +39,10 @@ void* threadFunc(void* arg)
 {
     while(threadRunning.load(std::memory_order_acquire))
     {
-		//if(!threadRunning.load(std::memory_order_acquire))
-		//{
-		//	std::cout << "thread exited by if" << std::endl;
-		//	return (void*)nullptr;
-		//}
-
         Cam* cam = Cam::getInstance();
         if(cam->queue.size() > 0)
         {
-			std::cout << "thread working" << std::endl;
+			//std::cout << "thread working" << std::endl;
             cam->queue.front()();
             cam->queue.pop_front();
         }
@@ -76,7 +70,7 @@ void Cam::processRequest(libcamera::Request *request)
 	{
 		libcamera::FrameBuffer* buffer = bufferPair.second;
 
-        libcamera::Span span = Mmap(buffer)[0];
+        libcamera::Span<uint8_t> span = Mmap(buffer)[0];
         ImageProcessing::process(span.data(), span.size_bytes());
 	}
 
@@ -91,7 +85,6 @@ void Cam::processRequest(libcamera::Request *request)
 void Cam::init()
 {
     cameraManager = std::make_shared<libcamera::CameraManager>();
-    //libcamera::CameraManager cameraManager;
 
 	int ret = cameraManager->start();
 	print(ret);
@@ -109,7 +102,6 @@ void Cam::init()
 
     if(ret)
         throw std::exception();
-	//StreamRole::VideoRecording
 
 #if DEFINED(ADD_RAW_STREAM)
     config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder, libcamera::StreamRole::Raw});
@@ -223,7 +215,7 @@ void Cam::start()
 		 * Controls can be added to a request on a per frame basis.
 		 */
 		libcamera::ControlList &controls = request->controls();
-		controls.set(libcamera::controls::Brightness, 0.5);
+		controls.set(libcamera::controls::Brightness, 0.5f);
 
 		requests.push_back(std::move(request));
 	}
@@ -233,7 +225,7 @@ void Cam::start()
 
 
 	int64_t frame_time = 1000000 / FRAMERATE; // in us
-	controls.set(libcamera::controls::FrameDurationLimits, { frame_time, frame_time });
+	controls.set(libcamera::controls::FrameDurationLimits, libcamera::Span<const int64_t, 2>({ frame_time, frame_time }));
 
     cameraRunning.store(true, std::memory_order_release);
     camera->start(&controls);

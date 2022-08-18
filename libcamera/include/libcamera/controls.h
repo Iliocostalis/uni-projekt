@@ -8,6 +8,7 @@
 #pragma once
 
 #include <assert.h>
+#include <optional>
 #include <set>
 #include <stdint.h>
 #include <string>
@@ -98,10 +99,10 @@ public:
 	ControlValue();
 
 #ifndef __DOXYGEN__
-	template<typename T, typename std::enable_if_t<!details::is_span<T>::value &&
-						       details::control_type<T>::value &&
-						       !std::is_same<std::string, std::remove_cv_t<T>>::value,
-						       std::nullptr_t> = nullptr>
+	template<typename T, std::enable_if_t<!details::is_span<T>::value &&
+					      details::control_type<T>::value &&
+					      !std::is_same<std::string, std::remove_cv_t<T>>::value,
+					      std::nullptr_t> = nullptr>
 	ControlValue(const T &value)
 		: type_(ControlTypeNone), numElements_(0)
 	{
@@ -109,9 +110,9 @@ public:
 		    &value, 1, sizeof(T));
 	}
 
-	template<typename T, typename std::enable_if_t<details::is_span<T>::value ||
-						       std::is_same<std::string, std::remove_cv_t<T>>::value,
-						       std::nullptr_t> = nullptr>
+	template<typename T, std::enable_if_t<details::is_span<T>::value ||
+					      std::is_same<std::string, std::remove_cv_t<T>>::value,
+					      std::nullptr_t> = nullptr>
 #else
 	template<typename T>
 #endif
@@ -143,9 +144,9 @@ public:
 	}
 
 #ifndef __DOXYGEN__
-	template<typename T, typename std::enable_if_t<!details::is_span<T>::value &&
-						       !std::is_same<std::string, std::remove_cv_t<T>>::value,
-						       std::nullptr_t> = nullptr>
+	template<typename T, std::enable_if_t<!details::is_span<T>::value &&
+					      !std::is_same<std::string, std::remove_cv_t<T>>::value,
+					      std::nullptr_t> = nullptr>
 	T get() const
 	{
 		assert(type_ == details::control_type<std::remove_cv_t<T>>::value);
@@ -154,9 +155,9 @@ public:
 		return *reinterpret_cast<const T *>(data().data());
 	}
 
-	template<typename T, typename std::enable_if_t<details::is_span<T>::value ||
-						       std::is_same<std::string, std::remove_cv_t<T>>::value,
-						       std::nullptr_t> = nullptr>
+	template<typename T, std::enable_if_t<details::is_span<T>::value ||
+					      std::is_same<std::string, std::remove_cv_t<T>>::value,
+					      std::nullptr_t> = nullptr>
 #else
 	template<typename T>
 #endif
@@ -167,22 +168,22 @@ public:
 
 		using V = typename T::value_type;
 		const V *value = reinterpret_cast<const V *>(data().data());
-		return { value, numElements_ };
+		return T{ value, numElements_ };
 	}
 
 #ifndef __DOXYGEN__
-	template<typename T, typename std::enable_if_t<!details::is_span<T>::value &&
-						       !std::is_same<std::string, std::remove_cv_t<T>>::value,
-						       std::nullptr_t> = nullptr>
+	template<typename T, std::enable_if_t<!details::is_span<T>::value &&
+					      !std::is_same<std::string, std::remove_cv_t<T>>::value,
+					      std::nullptr_t> = nullptr>
 	void set(const T &value)
 	{
 		set(details::control_type<std::remove_cv_t<T>>::value, false,
 		    reinterpret_cast<const void *>(&value), 1, sizeof(T));
 	}
 
-	template<typename T, typename std::enable_if_t<details::is_span<T>::value ||
-						       std::is_same<std::string, std::remove_cv_t<T>>::value,
-						       std::nullptr_t> = nullptr>
+	template<typename T, std::enable_if_t<details::is_span<T>::value ||
+					      std::is_same<std::string, std::remove_cv_t<T>>::value,
+					      std::nullptr_t> = nullptr>
 #else
 	template<typename T>
 #endif
@@ -369,17 +370,17 @@ public:
 	void clear() { controls_.clear(); }
 	void merge(const ControlList &source);
 
-	bool contains(const ControlId &id) const;
 	bool contains(unsigned int id) const;
 
 	template<typename T>
-	T get(const Control<T> &ctrl) const
+	std::optional<T> get(const Control<T> &ctrl) const
 	{
-		const ControlValue *val = find(ctrl.id());
-		if (!val)
-			return T{};
+		const auto entry = controls_.find(ctrl.id());
+		if (entry == controls_.end())
+			return std::nullopt;
 
-		return val->get<T>();
+		const ControlValue &val = entry->second;
+		return val.get<T>();
 	}
 
 	template<typename T, typename V>

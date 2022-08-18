@@ -13,7 +13,7 @@ namespace ImageProcessing
     int ind = 0;
 
     std::array<std::vector<char>, IMAGE_BUFFER_COUNT> imageBuffer;
-    std::atomic<int> currentImageIndex = 0;
+    int currentImageIndex = 0;
 
     void init()
     {

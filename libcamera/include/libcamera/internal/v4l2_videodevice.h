@@ -14,6 +14,7 @@
 #include <ostream>
 #include <stdint.h>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <linux/videodev2.h>
@@ -228,6 +229,8 @@ public:
 	static std::unique_ptr<V4L2VideoDevice>
 	fromEntityName(const MediaDevice *media, const std::string &entity);
 
+	V4L2PixelFormat toV4L2PixelFormat(const PixelFormat &pixelFormat) const;
+
 protected:
 	std::string logPrefix() const override;
 
@@ -239,6 +242,8 @@ private:
 		Stopping,
 		Stopped,
 	};
+
+	int initFormats();
 
 	int getFormatMeta(V4L2DeviceFormat *format);
 	int trySetFormatMeta(V4L2DeviceFormat *format, bool set);
@@ -266,6 +271,7 @@ private:
 	V4L2Capability caps_;
 	V4L2DeviceFormat format_;
 	const PixelFormatInfo *formatInfo_;
+	std::unordered_set<V4L2PixelFormat> pixelFormats_;
 
 	enum v4l2_buf_type bufferType_;
 	enum v4l2_memory memoryType_;
@@ -276,6 +282,7 @@ private:
 	EventNotifier *fdBufferNotifier_;
 
 	State state_;
+	std::optional<unsigned int> firstFrame_;
 
 	Timer watchdog_;
 	utils::Duration watchdogDuration_;

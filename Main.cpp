@@ -11,9 +11,30 @@
 #include <ImageProcessing.h>
 #include <Preview.h>
 
-void loop()
-{
+bool isRunning = true;
+pthread_t loopThread;
 
+void* loop(void* arg)
+{
+	auto start = std::chrono::high_resolution_clock::now();
+	auto last = std::chrono::high_resolution_clock::now();
+    while(true)
+    {
+		auto now = std::chrono::high_resolution_clock::now();
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - last);
+
+		// limit to 20 fps
+		if(milliseconds.count() > 50)
+		{
+			last = now;
+
+#if DEFINED(SHOW_PREVIEW)
+			std::cout << "refresh window" << std::endl;
+			std::cout << "image index: " << ImageProcessing::currentImageIndex << std::endl;
+			Preview::getInstance()->refresh();
+#endif
+		}
+    }
 }
 
 int main()
@@ -27,28 +48,22 @@ int main()
 	Cam::getInstance()->init();
 	Cam::getInstance()->start();
 
-	auto start = std::chrono::high_resolution_clock::now();
-	auto last = std::chrono::high_resolution_clock::now();
+    int ret = pthread_create(&loopThread, NULL, &loop, NULL);
+
     while(true)
     {
-		auto now = std::chrono::high_resolution_clock::now();
-        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - last);
-        auto runningTime = std::chrono::duration_cast<std::chrono::seconds>(now - start);
+		std::string line;
+		std::getline( std::cin, line );
 
-		if(runningTime.count() >= 10)
-			break;
-
-		if(milliseconds.count() > 50)
+		if(line == "stop")
 		{
-			last = now;
-
-#if DEFINED(SHOW_PREVIEW)
-			std::cout << "refresh window" << std::endl;
-			std::cout << "image index: " << ImageProcessing::currentImageIndex << std::endl;
-			Preview::getInstance()->refresh();
-#endif
+			isRunning = false;
+			break;
 		}
     }
+
+	void* returnValue;
+	pthread_join(loopThread, &returnValue);
 
 #if DEFINED(SHOW_PREVIEW)
     Preview::getInstance()->close();

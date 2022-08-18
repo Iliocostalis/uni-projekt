@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include <linux/v4l2-subdev.h>
+
 #include <libcamera/base/class.h>
 #include <libcamera/base/log.h>
 
@@ -26,6 +28,17 @@
 namespace libcamera {
 
 class MediaDevice;
+
+struct V4L2SubdeviceCapability final : v4l2_subdev_capability {
+	bool isReadOnly() const
+	{
+		return capabilities & V4L2_SUBDEV_CAP_RO_SUBDEV;
+	}
+	bool hasStreams() const
+	{
+		return capabilities & V4L2_SUBDEV_CAP_MPLEXED;
+	}
+};
 
 struct V4L2SubdeviceFormat {
 	uint32_t mbus_code;
@@ -44,8 +57,14 @@ public:
 	using Formats = std::map<unsigned int, std::vector<SizeRange>>;
 
 	enum Whence {
-		ActiveFormat,
-		TryFormat,
+		TryFormat = V4L2_SUBDEV_FORMAT_TRY,
+		ActiveFormat = V4L2_SUBDEV_FORMAT_ACTIVE,
+	};
+
+	class Routing : public std::vector<struct v4l2_subdev_route>
+	{
+	public:
+		std::string toString() const;
 	};
 
 	explicit V4L2Subdevice(const MediaEntity *entity);
@@ -67,7 +86,11 @@ public:
 	int setFormat(unsigned int pad, V4L2SubdeviceFormat *format,
 		      Whence whence = ActiveFormat);
 
+	int getRouting(Routing *routing, Whence whence = ActiveFormat);
+	int setRouting(Routing *routing, Whence whence = ActiveFormat);
+
 	const std::string &model();
+	const V4L2SubdeviceCapability &caps() const { return caps_; }
 
 	static std::unique_ptr<V4L2Subdevice>
 	fromEntityName(const MediaDevice *media, const std::string &entity);
@@ -85,6 +108,7 @@ private:
 	const MediaEntity *entity_;
 
 	std::string model_;
+	struct V4L2SubdeviceCapability caps_;
 };
 
 } /* namespace libcamera */

@@ -26,6 +26,11 @@ struct SensorConfig {
 	uint32 sensorMetadata;
 };
 
+struct IPAInitResult {
+	SensorConfig sensorConfig;
+	libcamera.ControlInfoMap controlInfo;
+};
+
 struct ISPConfig {
 	uint32 embeddedBufferId;
 	uint32 bayerBufferId;
@@ -40,6 +45,7 @@ struct IPAConfig {
 
 struct IPAConfigResult {
        float modeSensitivity;
+       libcamera.ControlInfoMap controlInfo;
 };
 
 struct StartConfig {
@@ -50,7 +56,7 @@ struct StartConfig {
 
 interface IPARPiInterface {
 	init(libcamera.IPASettings settings)
-		=> (int32 ret, SensorConfig sensorConfig);
+		=> (int32 ret, IPAInitResult result);
 	start(libcamera.ControlList controls) => (StartConfig startConfig);
 	stop();
 
