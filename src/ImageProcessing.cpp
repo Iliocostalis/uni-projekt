@@ -90,7 +90,16 @@ namespace ImageProcessing
         }
         averageColor /= 81;
 
+        
+    }
 
+    void calculateSteering(const std::vector<Position>& pointsOnLineLeft, const std::vector<Position>& pointsOnLineRight)
+    {
+        Car car{};
+        car.steering = 0;
+        car.throtle = 0;
+
+        // TODO
     }
     
     void saveImage()

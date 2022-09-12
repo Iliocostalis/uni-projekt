@@ -8,6 +8,7 @@
 #include <atomic>
 
 #include <Config.h>
+#include <Utils.h>
 
 namespace ImageProcessing
 {
@@ -17,6 +18,8 @@ namespace ImageProcessing
     extern void init();
     extern void process(uint8_t* data, size_t size);
     extern void findLines(uint8_t* data, size_t size);
+
+    extern void calculateSteering(const std::vector<Position>& pointsOnLineLeft, const std::vector<Position>& pointsOnLineRight);
 
     extern void saveImage();
     extern void saveVideo();
