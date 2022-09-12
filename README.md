@@ -35,3 +35,7 @@ Run on Raspberry Pi
 ```sh
 sudo ./cam_code
 ```
+
+# Info
+
+Thread main:

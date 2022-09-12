@@ -4,28 +4,21 @@
 #include <ImageProcessing.h>
 #include <Preview.h>
 #include <Controller.h>
+#include <Utils.h>
+#include <mutex>
 
-int main()
+std::mutex m;
+//extern std::atomic_bool stop(false);
+std::atomic_bool inputThreadRunning(false);
+
+void* consoleInputLoop(void*)
 {
-	//Controller::getInstance()->start();
-	//Controller::getInstance()->stop();
-	//return 0;
-
-	ImageProcessing::init();
-
-#if DEFINED(SHOW_PREVIEW)
-    Preview::getInstance()->open();
-#endif
-
-	Cam::getInstance()->init();
-	Cam::getInstance()->start();
-
-    while(true)
+	//std::lock_guard lk(m);
+	while(true)
     {
 		std::string line;
 		std::getline( std::cin, line );
 
-		//std::cout << line << std::endl;
 		if(line == "stop")
 		{
 			break;
@@ -43,9 +36,39 @@ int main()
 			ImageProcessing::stopVideo();
 		}
     }
+	inputThreadRunning = false;
+	stop.notify_all();
+	return (void*)nullptr;
+}
+
+int main()
+{
+	//Controller::getInstance()->start();
+	//Controller::getInstance()->stop();
+	//return 0;
+
+	ImageProcessing::init();
+
+#if DEFINED(SHOW_PREVIEW)
+    Preview::getInstance()->open();
+#endif
+
+	Cam::getInstance()->init();
+	Cam::getInstance()->start();
+	
+	inputThreadRunning = true;
+	pthread_t inputThread; 
+    int ret = pthread_create(&inputThread, NULL, &consoleInputLoop, NULL);
+	
+    std::unique_lock lk(m);
+	stop.wait(lk);
+	lk.unlock();
+
+	if(inputThreadRunning)
+		pthread_cancel(inputThread);
+
 
 	// close all
-
 #if DEFINED(SHOW_PREVIEW)
     Preview::getInstance()->close();
 #endif

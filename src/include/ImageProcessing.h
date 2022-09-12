@@ -19,7 +19,7 @@ namespace ImageProcessing
     extern void process(uint8_t* data, size_t size);
     extern void findLines(uint8_t* data, size_t size);
 
-    extern void calculateSteering(const std::vector<Position>& pointsOnLineLeft, const std::vector<Position>& pointsOnLineRight);
+    extern void calculateSteering(const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight);
 
     extern void saveImage();
     extern void saveVideo();

@@ -8,6 +8,12 @@
 #define CAMERA_LOG 0
 #define PREVIEW_LOG 0
 
+#ifndef NDEBUG
+#define DEBUG 1
+#else
+#define DEBUG 0
+#endif
+
 #if DEFINED(USE_HIGH_RES)
     #define IMAGE_WIDTH 1280
     #define IMAGE_HEIGHT 960

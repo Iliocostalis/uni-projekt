@@ -339,6 +339,8 @@ void Cam::init()
 	{
 		ImageProcessing::readImageFromFolder(imageNames[i], &images[i]);
 	}
+
+	std::sort(images.begin(), images.end());
 }
 
 void* cameraLoop(void* arg)
@@ -350,12 +352,15 @@ void* cameraLoop(void* arg)
 	int index = 0;
 	while(cameraRunning)
 	{
+#if DEFINED(CAMERA_LOG)
+		std::cout << "load image: " << index << std::endl;
+#endif
 		uint8_t* data = images[index].data();
 		int size = images[index].size();
 		ImageProcessing::process(data, size);
 		index = (index + 1) % images.size();
 
-    	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 
 	return (void*) nullptr;

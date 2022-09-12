@@ -4,6 +4,7 @@
 #include <chrono>
 #include <atomic>
 #include <thread>
+#include <algorithm>
 
 Preview::Preview(){}
 
@@ -16,25 +17,22 @@ Preview* Preview::getInstance()
 std::atomic_bool isPreviewLoopRunning(false);
 void* previewLoop(void* arg)
 {
-	auto start = std::chrono::high_resolution_clock::now();
-	auto last = std::chrono::high_resolution_clock::now();
     while(isPreviewLoopRunning)
     {
 		auto now = std::chrono::high_resolution_clock::now();
-        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - last);
-
-		// limit to 20 fps
-		if(milliseconds.count() >= 50)
-		{
-			last = now;
 
 #if DEFINED(PREVIEW_LOG)
-			std::cout << "refresh window" << std::endl;
-			std::cout << "image index: " << ImageProcessing::currentImageIndex << std::endl;
+        std::cout << "refresh window" << std::endl;
+        std::cout << "image index: " << ImageProcessing::currentImageIndex << std::endl;
 #endif
-			Preview::getInstance()->refresh();
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        Preview::getInstance()->refresh();
+
+        // limit to 20 fps
+	    auto last = std::chrono::high_resolution_clock::now();
+        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now - last);
+        
+        int sleep = std::max(0, 50 - (int)microseconds.count());
+		std::this_thread::sleep_for(std::chrono::microseconds(sleep));
     }
     return (void*)nullptr;
 }
@@ -75,6 +73,17 @@ void Preview::open()
 
 void Preview::refresh()
 {
+    while(XEventsQueued(display, QueuedAlready) > 0)
+    {
+        XEvent event{};
+        XNextEvent(display, &event);
+        if(event.type = ClientMessage && event.xclient.message_type == 288)
+        {
+            stop.notify_all();
+            isPreviewLoopRunning = false;
+            return;
+        }
+    }
     XPutImage(display, window, gc, images[ImageProcessing::currentImageIndex], 0, 0, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
     XFlush(display);
 }
