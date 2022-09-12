@@ -1,6 +1,9 @@
 #include <Preview.h>
 #include <ImageProcessing.h>
 #include <iostream>
+#include <chrono>
+#include <atomic>
+#include <thread>
 
 Preview::Preview(){}
 
@@ -8,6 +11,32 @@ Preview* Preview::getInstance()
 {
     static Preview preview;
     return &preview;
+}
+
+std::atomic_bool isPreviewLoopRunning(false);
+void* previewLoop(void* arg)
+{
+	auto start = std::chrono::high_resolution_clock::now();
+	auto last = std::chrono::high_resolution_clock::now();
+    while(isPreviewLoopRunning)
+    {
+		auto now = std::chrono::high_resolution_clock::now();
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - last);
+
+		// limit to 20 fps
+		if(milliseconds.count() >= 50)
+		{
+			last = now;
+
+#if DEFINED(PREVIEW_LOG)
+			std::cout << "refresh window" << std::endl;
+			std::cout << "image index: " << ImageProcessing::currentImageIndex << std::endl;
+#endif
+			Preview::getInstance()->refresh();
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return (void*)nullptr;
 }
 
 void Preview::open()
@@ -38,6 +67,10 @@ void Preview::open()
 
 	for(int i = 0; i < IMAGE_BUFFER_COUNT; ++i)
 		images[i] = XCreateImage(display, DefaultVisual(display, 0), 24, ZPixmap, 0, ImageProcessing::imageBuffer[i].data(), IMAGE_WIDTH, IMAGE_HEIGHT, 32, 0);
+
+
+    isPreviewLoopRunning = true;
+    int ret = pthread_create(&previewLoopThread, NULL, &previewLoop, NULL);
 }
 
 void Preview::refresh()
@@ -48,7 +81,10 @@ void Preview::refresh()
 
 void Preview::close()
 {
-    XDestroyWindow(display, window);
+    isPreviewLoopRunning = false;
+    void* returnValue;
+	pthread_join(previewLoopThread, &returnValue);
 
+    XDestroyWindow(display, window);
     XCloseDisplay(display);
 }

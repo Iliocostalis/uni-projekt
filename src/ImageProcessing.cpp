@@ -7,8 +7,8 @@
 namespace ImageProcessing
 {
     int imageNameCount = 0;
-    bool saveImageBool = false;
-    bool saveVideoBool = false;
+    std::atomic_bool saveImageBool(false);
+    std::atomic_bool saveVideoBool(false);
     auto lastImageSaved = std::chrono::high_resolution_clock::now();
     auto last = std::chrono::high_resolution_clock::now();
 
@@ -40,12 +40,11 @@ namespace ImageProcessing
         currentImageIndex = nextImageIndex;
 #endif
 
-
-
         auto now = std::chrono::high_resolution_clock::now();
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now - last);
         last = now;
 
+#if DEFINED(CAMERA_LOG)
         lasts[ind] = microseconds;
         ind = (ind + 1) % 5;
 
@@ -55,7 +54,6 @@ namespace ImageProcessing
 
         averageTime /= 5;
 
-#if DEFINED(CAMERA_LOG)
         std::cout << "image count: " << val << std::endl;
         std::cout << "fps: " << 1000000.0f / averageTime << std::endl;
         std::cout << "size: " << size << std::endl;
@@ -72,6 +70,27 @@ namespace ImageProcessing
 
             saveImageToFolder(fileName, data);
         }
+
+        findLines(data, size);
+    }
+
+    void findLines(uint8_t* data, size_t size)
+    {
+        int posX = IMAGE_WIDTH / 2;
+        int posY = (IMAGE_HEIGHT / 3) * 2;
+        int averageColor = 0;
+        for(int y = -4; y <= 4; ++y)
+        {
+            for(int x = -4; x <= 4; ++x)
+            {
+                int ix = posX + x;
+                int iy = posY + y;
+                averageColor += (int)data[iy * IMAGE_WIDTH + ix];
+            }
+        }
+        averageColor /= 81;
+
+
     }
     
     void saveImage()

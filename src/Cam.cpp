@@ -26,10 +26,6 @@
 
 #if !DEFINED(PC_MODE)
 
-std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_buffers;
-std::atomic_bool threadRunning(false);
-std::atomic_bool cameraRunning(false);
-
 void print(int value)
 {
     std::cout << value << std::endl;
@@ -69,7 +65,8 @@ void* threadFunc(void* arg)
 	return (void*)nullptr;
 }
 
-Cam::Cam(){}
+Cam::Cam() : threadRunning(false), cameraRunning(false)
+{}
 
 Cam* Cam::getInstance()
 {
@@ -291,8 +288,20 @@ void Cam::stop()
 
 #else
 
+struct LoopArg
+{
+	std::vector<std::vector<uint8_t>>* images;
+	std::atomic_bool* cameraRunning;
+};
+
 Cam::Cam() : cameraRunning(false)
 {}
+
+Cam::~Cam()
+{
+	LoopArg* arg = (LoopArg*)loopArg;
+	delete arg;
+}
 
 Cam* Cam::getInstance()
 {
@@ -307,8 +316,11 @@ void Cam::processRequest()
 
 void Cam::init()
 {
-	//std::vector<uint8_t> image;
-	//ImageProcessing::readImageFromFolder("../images/image_79", &image);
+	LoopArg* arg = new LoopArg();
+	arg->images = &images;
+	arg->cameraRunning = &cameraRunning;
+
+	loopArg = (void*)arg;
 
 	int count = 0;
 	std::string imageFolder = "../images";
@@ -323,23 +335,11 @@ void Cam::init()
 		imageNames.push_back(entry.path());
 	}
 
-	//std::sort(images.begin(), images.end());
 	for(int i = 0; i < imageNames.size(); ++i)
 	{
 		ImageProcessing::readImageFromFolder(imageNames[i], &images[i]);
 	}
-
-
-
-	return;
 }
-
-
-struct LoopArg
-{
-	std::vector<std::vector<uint8_t>>* images;
-	std::atomic_bool* cameraRunning;
-};
 
 void* cameraLoop(void* arg)
 {
@@ -360,22 +360,20 @@ void* cameraLoop(void* arg)
 
 	return (void*) nullptr;
 }
-	
 
 void Cam::start()
 {
 	cameraRunning = true;
-	LoopArg* arg = new LoopArg();
-	arg->images = &images;
-	arg->cameraRunning = &cameraRunning;
-
+	
 	int threadRet;
-    threadRet = pthread_create(&thread, NULL, &cameraLoop, (void*) arg);
+    threadRet = pthread_create(&thread, NULL, &cameraLoop, (void*) loopArg);
 }
 
 void Cam::stop()
 {
 	cameraRunning = false;
+	void* returnVal;
+	pthread_join(thread, &returnVal);
 } 
 
 #endif

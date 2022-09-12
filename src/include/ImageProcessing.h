@@ -16,6 +16,8 @@ namespace ImageProcessing
 
     extern void init();
     extern void process(uint8_t* data, size_t size);
+    extern void findLines(uint8_t* data, size_t size);
+
     extern void saveImage();
     extern void saveVideo();
     extern void stopVideo();

@@ -10,7 +10,8 @@ class Preview
     int screen;
     GC gc;
     std::array<XImage*, IMAGE_BUFFER_COUNT> images;
-
+    pthread_t previewLoopThread;
+    
     Preview();
 public:
     Preview(Preview const&)         = delete;

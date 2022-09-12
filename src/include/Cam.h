@@ -18,11 +18,14 @@ class Cam
     pthread_t thread;
     libcamera::ControlList controls;
 	std::vector<std::unique_ptr<libcamera::Request>> requests;
+    std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_buffers;
+
+    std::atomic_bool threadRunning;
+    std::atomic_bool cameraRunning;
 
     Cam();
 public:
     std::list<std::function<void(void)>> queue;
-
 
     Cam(Cam const&)             = delete;
     void operator=(Cam const&)  = delete;
@@ -43,10 +46,11 @@ class Cam
     std::atomic_bool cameraRunning;
     std::vector<std::vector<uint8_t>> images;
 
-    Cam();
-public:
-    std::list<std::function<void(void)>> queue;
+    void* loopArg;
 
+    Cam();
+    ~Cam();
+public:
 
     Cam(Cam const&)             = delete;
     void operator=(Cam const&)  = delete;
