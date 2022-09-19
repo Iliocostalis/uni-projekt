@@ -7,6 +7,7 @@
 #include <atomic>
 #if !DEFINED(PC_MODE)
 #include <libcamera/libcamera.h>
+#include <condition_variable>
 
 class Cam
 {
@@ -22,6 +23,8 @@ class Cam
 
     std::atomic_bool threadRunning;
     std::atomic_bool cameraRunning;
+
+    std::condition_variable newImage;
 
     Cam();
 public:

@@ -17,7 +17,7 @@ namespace ImageProcessing
     Average<std::chrono::microseconds> averageTime(5);
     std::chrono::microseconds lasts[5];
 
-    std::array<std::vector<char>, IMAGE_BUFFER_COUNT> imageBuffer;
+    std::array<std::vector<uint8_t>, IMAGE_BUFFER_COUNT> imageBuffer;
     std::atomic<int> currentImageIndex(0);
 
     void init()
@@ -30,7 +30,6 @@ namespace ImageProcessing
 
     void process(uint8_t* data, size_t size)
     {
-        findLines(data, size);
 
 #if DEFINED(SHOW_PREVIEW)
         int nextImageIndex = (currentImageIndex + 1) % imageBuffer.size();
@@ -39,8 +38,14 @@ namespace ImageProcessing
             imageBuffer[nextImageIndex][i * 4 + 0] = data[i];
             imageBuffer[nextImageIndex][i * 4 + 1] = data[i];
             imageBuffer[nextImageIndex][i * 4 + 2] = data[i];
-            imageBuffer[nextImageIndex][i * 4 + 3] = data[i];
+            imageBuffer[nextImageIndex][i * 4 + 3] = 255;
         }
+        currentImageIndex = nextImageIndex;
+#endif
+
+        findLines(imageBuffer[nextImageIndex], data, size);
+
+#if DEFINED(SHOW_PREVIEW)
         currentImageIndex = nextImageIndex;
 #endif
 
@@ -57,7 +62,7 @@ namespace ImageProcessing
         auto timeLastImageSaved = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastImageSaved);
 
         // Y420
-        if(saveImageBool || (saveVideoBool && timeLastImageSaved.count() > 500))
+        if(saveImageBool || (saveVideoBool && timeLastImageSaved.count() > SAVE_VIDEO_FRAME_DELAY))
         {
             lastImageSaved = now;
             saveImageBool = false;
@@ -66,6 +71,22 @@ namespace ImageProcessing
 
             saveImageToFolder(fileName, data);
         }
+    }
+
+    inline void writePreviewPixel(std::vector<uint8_t>& previewImage, int x, int y, int rgb, uint8_t value)
+    {
+        ASSERT(x >= 0 && x < IMAGE_WIDTH && y >= 0 && y < IMAGE_HEIGHT);
+        previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
+    }
+
+    inline void writePreviewPixelThick(std::vector<uint8_t>& previewImage, int x, int y, int rgb, uint8_t value)
+    {
+        ASSERT(x >= 1 && x < IMAGE_WIDTH-1 && y >= 1 && y < IMAGE_HEIGHT-1);
+        previewImage[((y+1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
+        previewImage[((y+1)*IMAGE_WIDTH+x-1)*4 + rgb] = value;
+        previewImage[((y-1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
+        previewImage[((y-1)*IMAGE_WIDTH+x-1)*4 + rgb] = value;
+        previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
     }
 
     int blackCount(uint8_t* data, const std::vector<Position<int>>& circleOffsets, const Position<int>& pos, int threshold)
@@ -79,7 +100,7 @@ namespace ImageProcessing
         return sum;
     }
 
-    Position<int> moveTillBorder(uint8_t* data, const Position<int>& start, int moveX, int colorThresholdDark, std::vector<uint8_t>& imageOut)
+    Position<int> moveTillBorder(uint8_t* data, const Position<int>& start, int moveX, int colorThresholdDark, std::vector<uint8_t>& previewImage)
     {
         ASSERT(moveX == 1 || moveX == -1)
 
@@ -101,7 +122,7 @@ namespace ImageProcessing
             else
             {
 #if DEFINED(DEBUG)
-                imageOut[start.y * IMAGE_WIDTH + x] = 255;
+                writePreviewPixel(previewImage, x, start.y, 0, 255);
 #endif
                 sum = std::max(0, sum - 2);
             }
@@ -118,7 +139,7 @@ namespace ImageProcessing
         return pos;
     }
 
-    std::vector<Position<int>> followLine(uint8_t* data, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int colorThresholdDark, const std::vector<Position<int>>& circleOffsets, std::vector<uint8_t>& imageOut)
+    std::vector<Position<int>> followLine(uint8_t* data, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int colorThresholdDark, const std::vector<Position<int>>& circleOffsets, std::vector<uint8_t>& previewImage)
     {
         ASSERT(move > 0)
 
@@ -179,7 +200,7 @@ namespace ImageProcessing
 
             line.push_back(current + Position<float>(0.5f, 0.5f));
 #if DEFINED(DEBUG)
-            imageOut[line.back().y * IMAGE_WIDTH + line.back().x] = 255;
+            writePreviewPixel(previewImage, line.back().x, line.back().y, 1, 255);
 #endif
             step += 1;
         }
@@ -187,14 +208,8 @@ namespace ImageProcessing
         return line;
     }
 
-    void findLines(uint8_t* data, size_t size)
+    void findLines(std::vector<uint8_t>& previewImage, uint8_t* data, size_t size)
     {
-#if DEFINED(DEBUG)
-        std::vector<uint8_t> imageOut;
-        imageOut.resize(size);
-        std::copy(data, data+size, imageOut.data());
-#endif
-
         std::vector<Position<int>> circleOffsets;
         int space = 2;
         for(int i = 0; i < 18; ++i)
@@ -224,34 +239,186 @@ namespace ImageProcessing
         int colorThresholdDark = averageColor * 0.8f;
 
 
-        Position<int> leftFirst = moveTillBorder(data, start, -1, colorThresholdDark, imageOut);
-        Position<int> leftSecond = moveTillBorder(data, leftFirst+Position<int>(20, -3), -1, colorThresholdDark, imageOut);
-        Position<int> rightFrist = moveTillBorder(data, start, 1, colorThresholdDark, imageOut);
-        Position<int> rightSecond = moveTillBorder(data, rightFrist+Position<int>(-20, -3), 1, colorThresholdDark, imageOut);
+        Position<int> leftFirst = moveTillBorder(data, start, -1, colorThresholdDark, previewImage);
+        Position<int> leftSecond = moveTillBorder(data, leftFirst+Position<int>(20, -3), -1, colorThresholdDark, previewImage);
+        Position<int> rightFrist = moveTillBorder(data, start, 1, colorThresholdDark, previewImage);
+        Position<int> rightSecond = moveTillBorder(data, rightFrist+Position<int>(-20, -3), 1, colorThresholdDark, previewImage);
 
-        auto lineLeft = followLine(data, leftFirst, leftSecond, 4, colorThresholdDark, circleOffsets, imageOut);
-        auto lineRight = followLine(data, rightFrist, rightSecond, 4, colorThresholdDark, circleOffsets, imageOut);
+        auto lineLeft = followLine(data, leftFirst, leftSecond, 4, colorThresholdDark, circleOffsets, previewImage);
+        auto lineRight = followLine(data, rightFrist, rightSecond, 4, colorThresholdDark, circleOffsets, previewImage);
+
+
+        calculateSteering(previewImage, lineLeft, lineRight);
+    }
+
+    void getPerpendicular(const std::vector<Position<float>>& line, std::vector<Position<float>>* linePerpendicular, bool flipDirection)
+    {
+        ASSERT(line.size() == linePerpendicular->size());
+        std::vector<Position<float>>& perpendicular = *linePerpendicular;
+
+        int count = 3;
+        for(int i = count; i < line.size()-count; ++i)
+        {
+            Position<float> pointA(0.f, 0.f);
+            Position<float> pointB(0.f, 0.f);
+            
+            for(int l = 1; l <= count; l++)
+            {
+                pointA.x += line[i-count].x;
+                pointB.x += line[i+count].x;
+
+                pointA.y += line[i-count].y;
+                pointB.y += line[i+count].y;
+            }
+
+            pointA = pointA / (float)count;
+            pointB = pointB / (float)count;
+
+            if(flipDirection)
+            {
+                perpendicular[i].x = (pointB.y - pointA.y);
+                perpendicular[i].y = -(pointB.x - pointA.x);
+            }
+            else
+            {
+                perpendicular[i].x = -(pointB.y - pointA.y);
+                perpendicular[i].y = (pointB.x - pointA.x);
+            }
+
+            perpendicular[i] = perpendicular[i] / std::sqrt(perpendicular[i].x * perpendicular[i].x + perpendicular[i].y * perpendicular[i].y);
+        }
+
+        for(int i = 0; i < count; ++i)
+            perpendicular[i] = perpendicular[count];
+
+        for(int i = perpendicular.size()-count; i < perpendicular.size(); ++i)
+            perpendicular[i] = perpendicular[count];
+    }
+
+    void calculateSteering(std::vector<uint8_t>& previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
+    {
+        float rotation = 0.f;
+        float throtle = 0.f;
+        int minLineSteps = 30;
+        int centerLineIndex = 20;
+
+        if(pointsOnLineLeft.size() < minLineSteps)
+            return;
+        if(pointsOnLineRight.size() < minLineSteps)
+            return;
+
+        std::vector<Position<float>> lineLeft;
+        std::vector<Position<float>> lineRight;
+        std::vector<Position<float>> lineCenter;
+        lineCenter.reserve(centerLineIndex+1);
+
+        lineLeft.reserve(pointsOnLineLeft.size());
+        for(auto& p : pointsOnLineLeft)
+            lineLeft.push_back(p);
+
+        lineRight.reserve(pointsOnLineRight.size());
+        for(auto& p : pointsOnLineRight)
+            lineRight.push_back(p);
+
+
+        Position<float> center((lineLeft[0] + lineRight[0]) * 0.5f);
+        Position<float> direction(0.f, -1.f);
+        Average<Position<float>> avDir(3);
+        avDir.addSample(Position<float>(0.f, -1.f));
+        float rad = 0.6f;
+        float moveDistance = 3.f;
+
+#if DEFINED(DEBUG)
+        while (true)
+#else
+        for(int i = 0; i <= centerLineIndex; ++i)
+#endif
+        {
+            lineCenter.push_back(center);
+
+            Position<float> dir = avDir.getAverage();
+            dir = dir / std::sqrt(dir.x*dir.x+dir.y*dir.y);
+            float directionRad = std::atan2(dir.y, dir.x);
+
+            center = center + dir * moveDistance;
+
+            int indexLeft = 0;
+            float spaceLeft = 1e10;
+            for(int l = 0; l < lineLeft.size()-4; ++l)
+            {
+                float sx = lineLeft[l].x - center.x;
+                float sy = lineLeft[l].y - center.y;
+
+                float rotation = std::atan2(sy, sx);
+                float mod = std::fmod(rotation - (directionRad-1.57079637f), (float)(M_PI*2));
+                if(l%10==0)
+                    int aaa=0;
+                if(std::abs(mod) > rad && std::abs(mod-(float)(M_PI*2)) > rad)
+                    continue;
+
+                float space = sx * sx + sy * sy;
+                if(space < spaceLeft)
+                {
+                    spaceLeft = space;
+                    indexLeft = l;
+                }
+            }
+            int indexRight = 0;
+            float spaceRight = 1e10;
+            for(int l = 0; l < lineRight.size()-4; ++l)
+            {
+                float sx = lineRight[l].x - center.x;
+                float sy = lineRight[l].y - center.y;
+
+                float rotation = std::atan2(sy, sx);
+                float mod = std::fmod(rotation - (directionRad+1.57079637f), (float)(M_PI*2));
+                if(std::abs(mod) > rad && std::abs(mod-(float)(M_PI*2)) > rad)
+                    continue;
+
+                float space = sx * sx + sy * sy;
+                if(space < spaceRight)
+                {
+                    spaceRight = space;
+                    indexRight = l;
+                }
+            }
+
+            if(spaceLeft == 1e10 || spaceRight == 1e10)
+                break;
+
+            Position<float> direction = (lineLeft[indexLeft+4] + lineRight[indexRight+4]) * 0.5f - center;
+            avDir.addSample(direction);
+
+            float spaceDiff = (std::sqrt(spaceLeft) - std::sqrt(spaceRight)) * 0.5f;
+            center.x += dir.y * spaceDiff;
+            center.y += -dir.x * spaceDiff;
+        }
 
 
 #if DEFINED(DEBUG)
-        std::copy(imageOut.data(), imageOut.data()+size, data);
-
-        static bool runOnce = true;
-        if(runOnce)
+        for(int i = 0; i < lineCenter.size(); ++i)
         {
-            saveImageToFolder("../tmpImage", imageOut.data());
-            runOnce = false;
+            const auto& p = lineCenter[i];
+            if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+                writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
         }
 #endif
-    }
+            
 
-    void calculateSteering(const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
-    {
-        Car car{};
-        car.steering = 0;
-        car.throtle = 0;
+        ASSERT(lineCenter.size() > centerLineIndex)
+        if(lineCenter.size() <= centerLineIndex)
+            return;
 
-        // TODO
+        Position<float> pointCar(IMAGE_WIDTH / 2, IMAGE_HEIGHT + IMAGE_HEIGHT / 4);
+        Position<float>& pointTarget = lineCenter[centerLineIndex];
+
+        rotation = std::atan2(-(pointTarget.y - pointCar.y), pointTarget.x - pointCar.x);
+        rotation = (M_PI_2 - rotation) / M_PI_2;
+
+#if !DEFINED(PC_MODE)
+        Controller::getInstance()->setThrotle(throtle);
+        Controller::getInstance()->setRotation(rotation);
+#endif
     }
     
     void saveImage()
@@ -317,12 +484,12 @@ namespace ImageProcessing
         file.close();
 
         imageData->resize(imageSize);
-        uint8_t* imageOut = imageData->data();
+        uint8_t* previewImage = imageData->data();
 
         int indexInput = 0;
         for(int i = 0; i < imageSize; ++i)
         {
-            imageOut[i] = (uint8_t)input[indexInput];
+            previewImage[i] = (uint8_t)input[indexInput];
             indexInput += 3;
         }
 

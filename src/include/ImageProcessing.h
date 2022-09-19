@@ -12,14 +12,14 @@
 
 namespace ImageProcessing
 {
-    extern std::array<std::vector<char>, IMAGE_BUFFER_COUNT> imageBuffer;
+    extern std::array<std::vector<uint8_t>, IMAGE_BUFFER_COUNT> imageBuffer;
     extern std::atomic<int> currentImageIndex;
 
     extern void init();
     extern void process(uint8_t* data, size_t size);
-    extern void findLines(uint8_t* data, size_t size);
+    extern void findLines(std::vector<uint8_t>& previewImage, uint8_t* data, size_t size);
 
-    extern void calculateSteering(const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight);
+    extern void calculateSteering(std::vector<uint8_t>& previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight);
 
     extern void saveImage();
     extern void saveVideo();

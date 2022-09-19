@@ -45,22 +45,26 @@ void requestComplete(libcamera::Request *request)
 		return;
 
     Cam::getInstance()->queue.push_back(std::bind(&Cam::processRequest, Cam::getInstance(), request));
+	newImage.notify_all();
 }
 
 void* threadFunc(void* arg)
 {
+    Cam* cam = Cam::getInstance();
+
     while(threadRunning.load(std::memory_order_acquire))
     {
-        Cam* cam = Cam::getInstance();
-	    
         if(cam->queue.size() > 0)
         {
-	    //std::cout << "queue size: " << cam->queue.size() << std::endl;
+	    	//std::cout << "queue size: " << cam->queue.size() << std::endl;
             cam->queue.front()();
             cam->queue.pop_front();
         }
-
-    	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		else
+		{
+			std::unique_lock lock(m);
+			newImage.wait(lock);
+		}
     }
 	return (void*)nullptr;
 }
@@ -81,14 +85,17 @@ void Cam::processRequest(libcamera::Request *request)
 		  << "Request completed: " << request->toString() << std::endl;
 #endif
 
-	const libcamera::Request::BufferMap &buffers = request->buffers();
-	for (auto bufferPair : buffers) 
+	if(queue.size() == 1)
 	{
-		libcamera::FrameBuffer* buffer = bufferPair.second;
+		const libcamera::Request::BufferMap &buffers = request->buffers();
+		for (auto bufferPair : buffers) 
+		{
+			libcamera::FrameBuffer* buffer = bufferPair.second;
 
-        libcamera::Span<uint8_t> span = Mmap(buffer)[0];
-	if(queue.size() < 3)
-	    ImageProcessing::process(span.data(), span.size_bytes());
+			libcamera::Span<uint8_t> span = Mmap(buffer)[0];
+		
+			ImageProcessing::process(span.data(), span.size_bytes());
+		}
 	}
 
 	/* Re-queue the Request to the camera. */
@@ -291,6 +298,7 @@ void Cam::stop()
 struct LoopArg
 {
 	std::vector<std::vector<uint8_t>>* images;
+	std::vector<std::string>* imageNames;
 	std::atomic_bool* cameraRunning;
 };
 
@@ -318,6 +326,7 @@ void Cam::init()
 {
 	LoopArg* arg = new LoopArg();
 	arg->images = &images;
+	arg->imageNames = &imageNames;
 	arg->cameraRunning = &cameraRunning;
 
 	loopArg = (void*)arg;
@@ -335,25 +344,27 @@ void Cam::init()
 		imageNames.push_back(entry.path());
 	}
 
+	std::sort(imageNames.begin(), imageNames.end());
+
 	for(int i = 0; i < imageNames.size(); ++i)
 	{
 		ImageProcessing::readImageFromFolder(imageNames[i], &images[i]);
 	}
-
-	std::sort(images.begin(), images.end());
 }
 
 void* cameraLoop(void* arg)
 {
 	LoopArg* loopArg = (LoopArg*)arg;
 	std::vector<std::vector<uint8_t>>& images = *(loopArg->images);
+	std::vector<std::string>& imageNames = *(loopArg->imageNames);
 	std::atomic_bool& cameraRunning = *(loopArg->cameraRunning);
 
 	int index = 0;
 	while(cameraRunning)
 	{
+		//index = 0;
 #if DEFINED(CAMERA_LOG)
-		std::cout << "load image: " << index << std::endl;
+		std::cout << "load image: " << imageNames[index] << " index: " << index << std::endl;
 #endif
 		uint8_t* data = images[index].data();
 		int size = images[index].size();

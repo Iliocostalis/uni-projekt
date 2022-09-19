@@ -29,9 +29,9 @@ void* previewLoop(void* arg)
 
         // limit to 20 fps
 	    auto last = std::chrono::high_resolution_clock::now();
-        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now - last);
+        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(last - now);
         
-        int sleep = std::max(0, 50 - (int)microseconds.count());
+        int sleep = std::max(0, 50000 - (int)microseconds.count());
 		std::this_thread::sleep_for(std::chrono::microseconds(sleep));
     }
     return (void*)nullptr;
@@ -64,7 +64,7 @@ void Preview::open()
     gc = XCreateGC(display, window, 0, NULL);
 
 	for(int i = 0; i < IMAGE_BUFFER_COUNT; ++i)
-		images[i] = XCreateImage(display, DefaultVisual(display, 0), 24, ZPixmap, 0, ImageProcessing::imageBuffer[i].data(), IMAGE_WIDTH, IMAGE_HEIGHT, 32, 0);
+		images[i] = XCreateImage(display, DefaultVisual(display, 0), 24, ZPixmap, 0, (char*)ImageProcessing::imageBuffer[i].data(), IMAGE_WIDTH, IMAGE_HEIGHT, 32, 0);
 
 
     isPreviewLoopRunning = true;
