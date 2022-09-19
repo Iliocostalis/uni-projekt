@@ -280,6 +280,11 @@ namespace ImageProcessing
         int index = 0;
         while(true)
         {
+#if !DEFINED(DEBUG)
+            if(index > 70 || point.y < IMAGE_HEIGHT / 2)
+                return;
+#endif
+
             index += 1;
             line->push_back(point);
 
@@ -420,6 +425,22 @@ namespace ImageProcessing
         followLineNew(image, leftFirst, leftSecond, colorThresholdDark, previewImage, lineLeft);
         followLineNew(image, rightFrist, rightSecond, colorThresholdDark, previewImage, lineRight);
 
+        if(lineLeft->size() < 8)
+        {
+            Position<int> leftFirst = moveTillBorder(image, start+Position<int>(0, -20), -1, colorThresholdDark, previewImage);
+            Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -23), -1, colorThresholdDark, previewImage);
+            lineLeft->clear();
+            followLineNew(image, leftFirst, leftSecond, colorThresholdDark, previewImage, lineLeft);
+        }
+
+        if(lineRight->size() < 8)
+        {
+            Position<int> leftFirst = moveTillBorder(image, start+Position<int>(0, -20), -1, colorThresholdDark, previewImage);
+            Position<int> rightSecond = moveTillBorder(image, leftFirst+Position<int>(20, -23), -1, colorThresholdDark, previewImage);
+            lineRight->clear();
+            followLineNew(image, leftFirst, rightSecond, colorThresholdDark, previewImage, lineRight);
+        }
+
 #if DEFINED(DEBUG)
         for(int i = 0; i < lineLeft->size(); ++i)
         {
@@ -442,9 +463,6 @@ namespace ImageProcessing
             }
         }
 #endif
-        //*lineLeft = followLine(image, leftFirst, leftSecond, 4, colorThresholdDark, circleOffsets, previewImage);
-        //*lineRight = followLine(image, rightFrist, rightSecond, 4, colorThresholdDark, circleOffsets, previewImage);
-
 
         calculateSteering(previewImage, *lineLeft, *lineRight);
     }
@@ -496,8 +514,7 @@ namespace ImageProcessing
     {
         float rotation = 0.f;
         float throtle = 0.f;
-        int minLineSteps = 30;
-        int centerLineIndex = 20;
+        int minLineSteps = 10;
 
         if(pointsOnLineLeft.size() < minLineSteps)
             return;
@@ -507,7 +524,7 @@ namespace ImageProcessing
         std::vector<Position<float>> lineLeft;
         std::vector<Position<float>> lineRight;
         std::vector<Position<float>> lineCenter;
-        lineCenter.reserve(centerLineIndex+1);
+        lineCenter.reserve(100);
 
         lineLeft.reserve(pointsOnLineLeft.size());
         for(auto& p : pointsOnLineLeft)
@@ -520,18 +537,18 @@ namespace ImageProcessing
 
         Position<float> center((lineLeft[0] + lineRight[0]) * 0.5f);
         Position<float> direction(0.f, -1.f);
-        Average<Position<float>> avDir(3);
+        Average<Position<float>> avDir(5);
         avDir.addSample(Position<float>(0.f, -1.f));
         float rad = 0.6f;
         float moveDistance = 3.f;
 
-#if DEFINED(DEBUG)
         while (true)
-#else
-        for(int i = 0; i <= centerLineIndex; ++i)
-#endif
         {
             lineCenter.push_back(center);
+#if DEFINED(DEBUG)
+            if(center.y <= (IMAGE_HEIGHT * 4) / 6)
+                break;
+#endif
 
             Position<float> dir = avDir.getAverage();
             dir = dir / std::sqrt(dir.x*dir.x+dir.y*dir.y);
@@ -582,7 +599,7 @@ namespace ImageProcessing
                 break;
 
             Position<float> direction = (lineLeft[indexLeft+4] + lineRight[indexRight+4]) * 0.5f - center;
-            avDir.addSample(direction);
+            avDir.addSample(direction / std::sqrt(direction.x*direction.x+direction.y*direction.y));
 
             float spaceDiff = (std::sqrt(spaceLeft) - std::sqrt(spaceRight)) * 0.5f;
             center.x += dir.y * spaceDiff;
@@ -604,16 +621,27 @@ namespace ImageProcessing
 #endif
             
 
-        //ASSERT(lineCenter.size() > centerLineIndex)
-        if(lineCenter.size() <= centerLineIndex)
-            return;
+        Position<float> pointTarget = lineCenter.back();
+        for(const auto& cl : lineCenter)
+        {
+            if(cl.y <= (IMAGE_HEIGHT * 4) / 6)
+            {
+                pointTarget = cl;
+                break;
+            }
+        }
 
         Position<float> pointCar(IMAGE_WIDTH / 2, IMAGE_HEIGHT + IMAGE_HEIGHT / 4);
-        Position<float>& pointTarget = lineCenter[centerLineIndex];
 
         rotation = std::atan2(-(pointTarget.y - pointCar.y), pointTarget.x - pointCar.x);
         rotation = (M_PI_2 - rotation) / M_PI_2;
 
+        //std::cout << "rot: " << rotation << std::endl;
+#if DEFINED(DEBUG)
+        writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 0, 0);
+        writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 2, 0);
+        writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 1, 255);
+#endif
 #if !DEFINED(PC_MODE)
         Controller::getInstance()->setThrotle(throtle);
         Controller::getInstance()->setRotation(rotation);

@@ -362,7 +362,7 @@ void* cameraLoop(void* arg)
 	int index = 0;
 	while(cameraRunning)
 	{
-		//index = 7;
+		//index = 81;
 #if DEFINED(CAMERA_LOG)
 		std::cout << "load image: " << imageNames[index] << " index: " << index << std::endl;
 #endif

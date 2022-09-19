@@ -77,7 +77,7 @@ void Preview::refresh()
     {
         XEvent event{};
         XNextEvent(display, &event);
-        if(event.type = ClientMessage && event.xclient.message_type == 288)
+        if(event.type = ClientMessage && event.xclient.message_type == 288 || event.xclient.message_type == 318)
         {
             stop.notify_all();
             isPreviewLoopRunning = false;
