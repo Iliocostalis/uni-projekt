@@ -40,10 +40,12 @@ namespace ImageProcessing
             imageBuffer[nextImageIndex][i * 4 + 2] = data[i];
             imageBuffer[nextImageIndex][i * 4 + 3] = 255;
         }
-        currentImageIndex = nextImageIndex;
 #endif
 
-        findLines(imageBuffer[nextImageIndex], data, size);
+        std::vector<Position<int>> lineLeft;
+        std::vector<Position<int>> lineRight;
+        //findLines(imageBuffer[nextImageIndex], data, size);
+        findLinesNew(imageBuffer[nextImageIndex], data, &lineLeft, &lineRight);
 
 #if DEFINED(SHOW_PREVIEW)
         currentImageIndex = nextImageIndex;
@@ -89,18 +91,18 @@ namespace ImageProcessing
         previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
     }
 
-    int blackCount(uint8_t* data, const std::vector<Position<int>>& circleOffsets, const Position<int>& pos, int threshold)
+    int blackCount(uint8_t* image, const std::vector<Position<int>>& circleOffsets, const Position<int>& pos, int threshold)
     {
         int sum = 0;
         for(auto& offset : circleOffsets)
         {
-            if(data[(pos.y + offset.y) * IMAGE_WIDTH + pos.x + offset.x] < threshold)
+            if(image[(pos.y + offset.y) * IMAGE_WIDTH + pos.x + offset.x] < threshold)
                 sum += 1;
         }
         return sum;
     }
 
-    Position<int> moveTillBorder(uint8_t* data, const Position<int>& start, int moveX, int colorThresholdDark, std::vector<uint8_t>& previewImage)
+    Position<int> moveTillBorder(uint8_t* image, const Position<int>& start, int moveX, int colorThresholdDark, std::vector<uint8_t>& previewImage)
     {
         ASSERT(moveX == 1 || moveX == -1)
 
@@ -109,9 +111,9 @@ namespace ImageProcessing
         int sum = 0;
         int min = 255;
         int max = 0;
-        for(int x = start.x; x >= 0 && x < IMAGE_WIDTH;)
+        for(int x = start.x; x >= 0 && x < IMAGE_WIDTH; x += moveX)
         {
-            int val = (int)data[start.y * IMAGE_WIDTH + x];
+            int val = (int)image[start.y * IMAGE_WIDTH + x];
             min = std::min(min, val);
             max = std::max(max, val);
 
@@ -133,13 +135,58 @@ namespace ImageProcessing
                 break;
             }
 
-            x += moveX;
+            pos.x = x;
         }
 
         return pos;
     }
 
-    std::vector<Position<int>> followLine(uint8_t* data, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int colorThresholdDark, const std::vector<Position<int>>& circleOffsets, std::vector<uint8_t>& previewImage)
+    Position<float> moveTillBorder(uint8_t* image, const Position<float>& start, const Position<float>& moveDirection, int colorThresholdDark, int stepCount, int blackCountToStop, bool* found, std::vector<uint8_t>& previewImage)
+    {
+        Position<float> pos(start);
+
+        *found = true;
+        int sum = 0;
+        int min = 255;
+        int max = 0;
+        int count = 0;
+        while(pos.x >= 0 && pos.x <= IMAGE_WIDTH && pos.y >= 0 && pos.y <= IMAGE_HEIGHT)
+        {
+            if(count >= stepCount)
+            {
+                *found = false;
+                break;
+            }
+            count += 1;
+
+            int val = image[(int)pos.y * IMAGE_WIDTH + (int)pos.x];
+            if(val < colorThresholdDark)
+            {
+                sum += 1;
+            }
+            else
+            {
+#if DEFINED(DEBUG)
+                writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 0, 0);
+                writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 1, 255);
+                writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 2, 0);
+#endif
+                sum = std::max(0, sum - 2);
+            }
+
+            if(sum >= blackCountToStop)
+            {
+                pos = pos - moveDirection * 2.0f;
+                break;
+            }
+
+            pos = pos + moveDirection;
+        }
+
+        return pos;
+    }
+
+    std::vector<Position<int>> followLine(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int colorThresholdDark, const std::vector<Position<int>>& circleOffsets, std::vector<uint8_t>& previewImage)
     {
         ASSERT(move > 0)
 
@@ -179,7 +226,7 @@ namespace ImageProcessing
             for(float o = -2.0f; o <= 2.0f; ++o)
             {
                 //auto pp = next + m * o + Position<float>(0.5f, 0.5f);
-                int b = blackCount(data, circleOffsets, next + m * o + Position<float>(0.5f, 0.5f), colorThresholdDark);
+                int b = blackCount(image, circleOffsets, next + m * o + Position<float>(0.5f, 0.5f), colorThresholdDark);
                 int diff = std::abs(b-9);
                 if(diff*3 + (int)std::abs(o) < lowest*3)
                 {
@@ -206,6 +253,200 @@ namespace ImageProcessing
         }
 
         return line;
+    }
+
+    void followLineNew(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int colorThresholdDark, std::vector<uint8_t>& previewImage, std::vector<Position<int>>* line)
+    {
+        float moveInside = 30.f;
+        float moveSize = 5.f;
+
+        Position<float> pointNext(secondPoint);
+        Position<float> point(secondPoint);
+        Position<float> pointLastValid(firstPoint);
+        Position<float> direction(secondPoint-firstPoint);
+
+        bool isLineLeft = firstPoint.x < IMAGE_WIDTH / 2;
+
+        Average<Position<float>> avDir(5);
+        avDir.addSample(direction / std::sqrt(direction.x*direction.x+direction.y*direction.y));
+        direction = avDir.getAverage();
+
+        bool gapDetected = false;
+        bool stepDetected = false;
+        bool stepCounterToHigh = false;
+        int stepCounter = 0;
+        int cutCount = 0;
+        int maxCuts = 5;
+        int index = 0;
+        while(true)
+        {
+            index += 1;
+            line->push_back(point);
+
+            float moveInsideScaled = moveInside / (1.f + 3.f * (1.0f - point.y / IMAGE_HEIGHT));
+            float moveSizeScaled = moveSize / (1.f + 1.f * (1.0f - point.y / IMAGE_HEIGHT));
+            int findGapScaled = (int)(8.f / (1.f + 2.f * (1.0f - point.y / IMAGE_HEIGHT)));
+
+
+            Position<float> directionNew = pointNext - pointLastValid;
+            directionNew = directionNew / std::sqrt(directionNew.x*directionNew.x+directionNew.y*directionNew.y);
+
+            Position<float> dirDiffP = directionNew - direction;
+            float dirDiff = std::sqrt(dirDiffP.x * dirDiffP.x + dirDiffP.y * dirDiffP.y);
+
+            if(gapDetected)
+            {
+                point = pointNext;
+                pointLastValid = point;
+                avDir.addSample(directionNew);
+            }
+            else if(dirDiff > 0.7f && !stepDetected)
+            {
+                if(stepCounterToHigh)
+                    return;
+
+                if(stepCounter > 0)
+                {
+                    stepCounterToHigh = true;
+                    stepCounter = 6;
+                }
+                else
+                {
+                    stepCounterToHigh = false;
+                    stepCounter = 4;
+                }
+
+                stepDetected = true;
+                point = point + direction * moveSizeScaled;
+                //pointLastValid = point;
+                //avDir.addSample(directionNew);
+            }
+            else
+            {
+                stepCounter -= 1;
+                stepDetected = false;
+                point = pointNext;
+                pointLastValid = point;
+                avDir.addSample(directionNew);
+            }
+            direction = avDir.getAverage();
+
+
+            Position<float> directionInside;
+            Position<float> directionOutside;
+            if(isLineLeft)
+            {
+                directionInside.x = -direction.y;
+                directionInside.y = direction.x;
+
+                directionOutside.x = direction.y;
+                directionOutside.y = -direction.x;
+            }
+            else
+            {
+                directionInside.x = direction.y;
+                directionInside.y = -direction.x;
+
+                directionOutside.x = -direction.y;
+                directionOutside.y = direction.x;
+            }
+
+            pointNext = point + direction * moveSizeScaled + directionInside * moveInsideScaled;
+
+            moveTillBorder(image, pointNext + direction * (float)-findGapScaled, direction, colorThresholdDark, findGapScaled*2, 1, &gapDetected, previewImage);
+            if(!gapDetected)
+                moveTillBorder(image, pointNext + direction * (float)-findGapScaled + directionOutside * (moveInsideScaled * 0.2f), direction, colorThresholdDark, findGapScaled*2, 1, &gapDetected, previewImage);
+            if(gapDetected)
+            {
+                if(cutCount > maxCuts)
+                    return;
+
+                cutCount += 1;
+                pointNext = point + direction * moveSizeScaled;
+                continue;
+            }
+            else
+                cutCount = 0;
+
+            bool borderFound;
+            pointNext = moveTillBorder(image, pointNext, directionOutside, colorThresholdDark, moveInsideScaled*3.f, 2, &borderFound, previewImage);
+
+            if(!borderFound)
+                return;
+
+        }
+    }
+
+    void findLinesNew(std::vector<uint8_t>& previewImage, uint8_t* image, std::vector<Position<int>>* lineLeft, std::vector<Position<int>>* lineRight)
+    {
+        float moveInside = 30.f;
+        float moveSize = 3.f;
+
+        Position<int> start;
+        start.x = IMAGE_WIDTH / 2;
+        start.y = (IMAGE_HEIGHT / 8) * 7;
+
+        int averageColorA = 0;
+        for(int y = -4; y <= 4; ++y)
+        {
+            for(int x = -4; x <= 4; ++x)
+            {
+                int ix = start.x + x;
+                int iy = start.y + y;
+                averageColorA += (int)image[iy * IMAGE_WIDTH + ix];
+            }
+        }
+
+        int averageColorB = 0;
+        for(int y = -4; y <= 4; ++y)
+        {
+            for(int x = -4; x <= 4; ++x)
+            {
+                int ix = start.x + x;
+                int iy = start.y + y - IMAGE_HEIGHT / 8;
+                averageColorB += (int)image[iy * IMAGE_WIDTH + ix];
+            }
+        }
+
+        int averageColor = std::max(averageColorA, averageColorB) / 81;
+        int colorThresholdDark = averageColor * 0.8f;
+
+
+        Position<int> leftFirst = moveTillBorder(image, start, -1, colorThresholdDark, previewImage);
+        Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -3), -1, colorThresholdDark, previewImage);
+        Position<int> rightFrist = moveTillBorder(image, start, 1, colorThresholdDark, previewImage);
+        Position<int> rightSecond = moveTillBorder(image, rightFrist+Position<int>(-20, -3), 1, colorThresholdDark, previewImage);
+
+        followLineNew(image, leftFirst, leftSecond, colorThresholdDark, previewImage, lineLeft);
+        followLineNew(image, rightFrist, rightSecond, colorThresholdDark, previewImage, lineRight);
+
+#if DEFINED(DEBUG)
+        for(int i = 0; i < lineLeft->size(); ++i)
+        {
+            const auto& p = (*lineLeft)[i];
+            if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+            {
+                writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
+                writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
+                writePreviewPixelThick(previewImage, p.x, p.y, 2, 255);
+            }
+        }
+        for(int i = 0; i < lineRight->size(); ++i)
+        {
+            const auto& p = (*lineRight)[i];
+            if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+            {
+                writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
+                writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
+                writePreviewPixelThick(previewImage, p.x, p.y, 2, 255);
+            }
+        }
+#endif
+        //*lineLeft = followLine(image, leftFirst, leftSecond, 4, colorThresholdDark, circleOffsets, previewImage);
+        //*lineRight = followLine(image, rightFrist, rightSecond, 4, colorThresholdDark, circleOffsets, previewImage);
+
+
+        calculateSteering(previewImage, *lineLeft, *lineRight);
     }
 
     void findLines(std::vector<uint8_t>& previewImage, uint8_t* data, size_t size)
@@ -249,50 +490,6 @@ namespace ImageProcessing
 
 
         calculateSteering(previewImage, lineLeft, lineRight);
-    }
-
-    void getPerpendicular(const std::vector<Position<float>>& line, std::vector<Position<float>>* linePerpendicular, bool flipDirection)
-    {
-        ASSERT(line.size() == linePerpendicular->size());
-        std::vector<Position<float>>& perpendicular = *linePerpendicular;
-
-        int count = 3;
-        for(int i = count; i < line.size()-count; ++i)
-        {
-            Position<float> pointA(0.f, 0.f);
-            Position<float> pointB(0.f, 0.f);
-            
-            for(int l = 1; l <= count; l++)
-            {
-                pointA.x += line[i-count].x;
-                pointB.x += line[i+count].x;
-
-                pointA.y += line[i-count].y;
-                pointB.y += line[i+count].y;
-            }
-
-            pointA = pointA / (float)count;
-            pointB = pointB / (float)count;
-
-            if(flipDirection)
-            {
-                perpendicular[i].x = (pointB.y - pointA.y);
-                perpendicular[i].y = -(pointB.x - pointA.x);
-            }
-            else
-            {
-                perpendicular[i].x = -(pointB.y - pointA.y);
-                perpendicular[i].y = (pointB.x - pointA.x);
-            }
-
-            perpendicular[i] = perpendicular[i] / std::sqrt(perpendicular[i].x * perpendicular[i].x + perpendicular[i].y * perpendicular[i].y);
-        }
-
-        for(int i = 0; i < count; ++i)
-            perpendicular[i] = perpendicular[count];
-
-        for(int i = perpendicular.size()-count; i < perpendicular.size(); ++i)
-            perpendicular[i] = perpendicular[count];
     }
 
     void calculateSteering(std::vector<uint8_t>& previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
@@ -351,8 +548,6 @@ namespace ImageProcessing
 
                 float rotation = std::atan2(sy, sx);
                 float mod = std::fmod(rotation - (directionRad-1.57079637f), (float)(M_PI*2));
-                if(l%10==0)
-                    int aaa=0;
                 if(std::abs(mod) > rad && std::abs(mod-(float)(M_PI*2)) > rad)
                     continue;
 
@@ -400,12 +595,16 @@ namespace ImageProcessing
         {
             const auto& p = lineCenter[i];
             if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
-                writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
+            {
+                writePreviewPixelThick(previewImage, p.x, p.y, 2, 0);
+                writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
+                writePreviewPixelThick(previewImage, p.x, p.y, 0, 255);
+            }
         }
 #endif
             
 
-        ASSERT(lineCenter.size() > centerLineIndex)
+        //ASSERT(lineCenter.size() > centerLineIndex)
         if(lineCenter.size() <= centerLineIndex)
             return;
 

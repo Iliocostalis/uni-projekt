@@ -20,10 +20,10 @@ public:
     template<class T2>
     void operator=(const Position<T2>& other);
 
-    Position<T> operator-(const Position<T>& other){return Position<T>(x - other.x, y - other.y);}
-    Position<T> operator+(const Position<T>& other){return Position<T>(x + other.x, y + other.y);}
-    Position<T> operator/(const T& other){return Position<T>(x / other, y / other);}
-    Position<T> operator*(const T& other){return Position<T>(x * other, y * other);}
+    Position<T> operator-(const Position<T>& other)const {return Position<T>(x - other.x, y - other.y);}
+    Position<T> operator+(const Position<T>& other)const {return Position<T>(x + other.x, y + other.y);}
+    Position<T> operator/(const T& other)const {return Position<T>(x / other, y / other);}
+    Position<T> operator*(const T& other)const {return Position<T>(x * other, y * other);}
 };
 
 template<class T>

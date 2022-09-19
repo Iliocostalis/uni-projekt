@@ -18,6 +18,7 @@ namespace ImageProcessing
     extern void init();
     extern void process(uint8_t* data, size_t size);
     extern void findLines(std::vector<uint8_t>& previewImage, uint8_t* data, size_t size);
+    extern void findLinesNew(std::vector<uint8_t>& previewImage, uint8_t* image, std::vector<Position<int>>* lineLeft, std::vector<Position<int>>* lineRight);
 
     extern void calculateSteering(std::vector<uint8_t>& previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight);
 

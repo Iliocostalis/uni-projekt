@@ -362,7 +362,7 @@ void* cameraLoop(void* arg)
 	int index = 0;
 	while(cameraRunning)
 	{
-		//index = 0;
+		//index = 7;
 #if DEFINED(CAMERA_LOG)
 		std::cout << "load image: " << imageNames[index] << " index: " << index << std::endl;
 #endif
@@ -371,7 +371,7 @@ void* cameraLoop(void* arg)
 		ImageProcessing::process(data, size);
 		index = (index + 1) % images.size();
 
-    	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    	std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 
 	return (void*) nullptr;
