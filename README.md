@@ -18,17 +18,17 @@ mkdir build
 Build on Linux/Windows
 ```sh
 cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cd ..
-cmake --build ./build -DCMAKE_BUILD_TYPE=Release
+cmake --build ./build
 ```
 
 Build on Raspberry Pi
 ```sh
 cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCOMPILE_FOR_RASPBERRY=1
 cd ..
-cmake --build ./build -DCMAKE_BUILD_TYPE=Release -DCOMPILE_FOR_RASPBERRY=1
+cmake --build ./build
 ```
 
 Run on Linux
