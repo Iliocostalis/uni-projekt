@@ -1,19 +1,23 @@
 #pragma once
 #include <Config.h>
-#if !DEFINED(PC_MODE) || 1
+#if DEFINED(RASPBERRY)
 #include <atomic>
-#include <pthread.h>
+#include <thread>
 
 class Controller
 {
+    int handle;
     std::atomic_bool loopRunning;
-    pthread_t loopThread;
+    std::thread controllerThread;
     float rotation;
     float throtle;
+    int pwm;
     
     Controller();
-    void move(float value);
-    void applyThrotle(float value);
+    void loop();
+    void move();
+    void applyThrotle();
+    void setDirection(bool out);
 
 public:
     Controller(Controller const&)      = delete;

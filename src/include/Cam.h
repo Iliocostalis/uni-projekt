@@ -5,28 +5,39 @@
 #include <list>
 #include <functional>
 #include <atomic>
-#if !DEFINED(PC_MODE)
+#include <thread>
+#include <vector>
+#include <string>
+#if DEFINED(RASPBERRY)
 #include <libcamera/libcamera.h>
 #include <condition_variable>
+#endif
 
 class Cam
 {
+#if DEFINED(RASPBERRY)
     std::shared_ptr<libcamera::CameraManager> cameraManager;
     std::shared_ptr<libcamera::Camera> camera;
     std::queue<libcamera::Request*> requestQueue;
     std::unique_ptr<libcamera::CameraConfiguration> config;
     std::unique_ptr<libcamera::FrameBufferAllocator> allocator;
-    pthread_t thread;
     libcamera::ControlList controls;
 	std::vector<std::unique_ptr<libcamera::Request>> requests;
     std::map<libcamera::FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mapped_buffers;
 
+    std::condition_variable newImage;
+#else
+    std::vector<std::string> imageNames;
+    std::vector<std::vector<uint8_t>> images;
+
+#endif
+    std::thread camThread;
     std::atomic_bool threadRunning;
     std::atomic_bool cameraRunning;
 
-    std::condition_variable newImage;
 
     Cam();
+    void cameraLoop();
 public:
     std::list<std::function<void(void)>> queue;
 
@@ -35,34 +46,11 @@ public:
 
     static Cam* getInstance();   
 
+#if DEFINED(RASPBERRY)
     void processRequest(libcamera::Request *request);
-    void init();
-    void start();
-    void stop(); 
-};
-#else
-class Cam
-{
-    pthread_t thread;
-    std::vector<std::string> imageNames;
-
-    std::atomic_bool cameraRunning;
-    std::vector<std::vector<uint8_t>> images;
-
-    void* loopArg;
-
-    Cam();
-    ~Cam();
-public:
-
-    Cam(Cam const&)             = delete;
-    void operator=(Cam const&)  = delete;
-
-    static Cam* getInstance();   
-
-    void processRequest();
-    void init();
-    void start();
-    void stop(); 
-};
 #endif
+
+    void init();
+    void start();
+    void stop(); 
+};

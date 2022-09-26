@@ -9,4 +9,4 @@ target_include_directories(cam_code PUBLIC "${CMAKE_CURRENT_LIST_DIR}/libcamera/
 
 #file(GLOB srcFiles CONFIGURE_DEPENDS "*.cpp")
 #target_sources(cam_code PRIVATE ${srcFiles})
-target_sources(cam_code PRIVATE Main.cpp Cam.cpp ImageProcessing.cpp Preview.cpp Controller.cpp Utils.cpp)
+target_sources(cam_code PRIVATE Main.cpp Cam.cpp ImageProcessing.cpp Controller.cpp Utils.cpp)

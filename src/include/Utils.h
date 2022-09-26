@@ -1,6 +1,11 @@
 #pragma once
 #include <vector>
 #include <condition_variable>
+#include <Config.h>
+#if DEFINED(WINDOWS)
+#define SIMPLE_WINDOW_WINDOWS
+#endif
+#include <SimpleWindow.h>
 
 template<class T>
 class Position
@@ -90,3 +95,6 @@ public:
 };
 
 extern std::condition_variable stop;
+extern bool isPreviewVisible;
+extern bool areLinesVisible;
+extern SimpleWindow* window;

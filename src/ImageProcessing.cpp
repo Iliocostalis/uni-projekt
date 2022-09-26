@@ -3,13 +3,15 @@
 #include <fstream>
 #include <string>
 #include <chrono>
+#define NOMINMAX
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <cmath>
 #include <Debugging.h>
 
 namespace ImageProcessing
 {
     int imageNameCount = 0;
-    std::atomic_bool saveImageBool(false);
     std::atomic_bool saveVideoBool(false);
     auto lastImageSaved = std::chrono::high_resolution_clock::now();
     auto last = std::chrono::high_resolution_clock::now();
@@ -20,36 +22,29 @@ namespace ImageProcessing
     std::array<std::vector<uint8_t>, IMAGE_BUFFER_COUNT> imageBuffer;
     std::atomic<int> currentImageIndex(0);
 
-    void init()
-    {
-#if DEFINED(SHOW_PREVIEW)
-        for(auto& image : imageBuffer)
-            image.resize(IMAGE_WIDTH * IMAGE_HEIGHT * 4);
-#endif
-    }
-
     void process(uint8_t* data, size_t size)
     {
 
-#if DEFINED(SHOW_PREVIEW)
-        int nextImageIndex = (currentImageIndex + 1) % imageBuffer.size();
-        for(int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; ++i)
+        uint8_t* previewImage = nullptr;
+        if(isPreviewVisible)
         {
-            imageBuffer[nextImageIndex][i * 4 + 0] = data[i];
-            imageBuffer[nextImageIndex][i * 4 + 1] = data[i];
-            imageBuffer[nextImageIndex][i * 4 + 2] = data[i];
-            imageBuffer[nextImageIndex][i * 4 + 3] = 255;
+            previewImage = window->getImagePointer(window->getNextImageIndex());
+            for(int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; ++i)
+            {
+                previewImage[i * 4 + 0] = data[i];
+                previewImage[i * 4 + 1] = data[i];
+                previewImage[i * 4 + 2] = data[i];
+                //previewImage[i * 4 + 3] = 255;
+            }
         }
-#endif
 
         std::vector<Position<int>> lineLeft;
         std::vector<Position<int>> lineRight;
         //findLines(imageBuffer[nextImageIndex], data, size);
-        findLinesNew(imageBuffer[nextImageIndex], data, &lineLeft, &lineRight);
+        findLinesNew(previewImage, data, &lineLeft, &lineRight);
 
-#if DEFINED(SHOW_PREVIEW)
-        currentImageIndex = nextImageIndex;
-#endif
+        if(isPreviewVisible)
+            window->swap();
 
         auto now = std::chrono::high_resolution_clock::now();
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now - last);
@@ -64,24 +59,25 @@ namespace ImageProcessing
         auto timeLastImageSaved = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastImageSaved);
 
         // Y420
-        if(saveImageBool || (saveVideoBool && timeLastImageSaved.count() > SAVE_VIDEO_FRAME_DELAY))
+        if(saveVideoBool && timeLastImageSaved.count() > SAVE_VIDEO_FRAME_DELAY)
         {
             lastImageSaved = now;
-            saveImageBool = false;
             std::string fileName = std::string("../images/image_") + std::to_string(imageNameCount);
             imageNameCount += 1;
+            if(imageNameCount > 500)
+                stopVideo();
 
             saveImageToFolder(fileName, data);
         }
     }
 
-    inline void writePreviewPixel(std::vector<uint8_t>& previewImage, int x, int y, int rgb, uint8_t value)
+    inline void writePreviewPixel(uint8_t* previewImage, int x, int y, int rgb, uint8_t value)
     {
         ASSERT(x >= 0 && x < IMAGE_WIDTH && y >= 0 && y < IMAGE_HEIGHT);
         previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
     }
 
-    inline void writePreviewPixelThick(std::vector<uint8_t>& previewImage, int x, int y, int rgb, uint8_t value)
+    inline void writePreviewPixelThick(uint8_t* previewImage, int x, int y, int rgb, uint8_t value)
     {
         ASSERT(x >= 1 && x < IMAGE_WIDTH-1 && y >= 1 && y < IMAGE_HEIGHT-1);
         previewImage[((y+1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
@@ -102,7 +98,7 @@ namespace ImageProcessing
         return sum;
     }
 
-    Position<int> moveTillBorder(uint8_t* image, const Position<int>& start, int moveX, int colorThresholdDark, std::vector<uint8_t>& previewImage)
+    Position<int> moveTillBorder(uint8_t* image, const Position<int>& start, int moveX, int colorThresholdDark, uint8_t* previewImage)
     {
         ASSERT(moveX == 1 || moveX == -1)
 
@@ -123,9 +119,8 @@ namespace ImageProcessing
             }
             else
             {
-#if DEFINED(DEBUG)
-                writePreviewPixel(previewImage, x, start.y, 0, 255);
-#endif
+                if(areLinesVisible)
+                    writePreviewPixel(previewImage, x, start.y, 0, 255);
                 sum = std::max(0, sum - 2);
             }
 
@@ -141,7 +136,7 @@ namespace ImageProcessing
         return pos;
     }
 
-    Position<float> moveTillBorder(uint8_t* image, const Position<float>& start, const Position<float>& moveDirection, int colorThresholdDark, int stepCount, int blackCountToStop, bool* found, std::vector<uint8_t>& previewImage)
+    Position<float> moveTillBorder(uint8_t* image, const Position<float>& start, const Position<float>& moveDirection, int colorThresholdDark, int stepCount, int blackCountToStop, bool* found, uint8_t* previewImage)
     {
         Position<float> pos(start);
 
@@ -166,11 +161,12 @@ namespace ImageProcessing
             }
             else
             {
-#if DEFINED(DEBUG)
-                writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 0, 0);
-                writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 1, 255);
-                writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 2, 0);
-#endif
+                if(areLinesVisible)
+                {
+                    writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 0, 0);
+                    writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 1, 255);
+                    writePreviewPixel(previewImage, (int)pos.x, (int)pos.y, 2, 0);
+                }
                 sum = std::max(0, sum - 2);
             }
 
@@ -186,7 +182,7 @@ namespace ImageProcessing
         return pos;
     }
 
-    std::vector<Position<int>> followLine(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int colorThresholdDark, const std::vector<Position<int>>& circleOffsets, std::vector<uint8_t>& previewImage)
+    std::vector<Position<int>> followLine(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int colorThresholdDark, const std::vector<Position<int>>& circleOffsets, uint8_t* previewImage)
     {
         ASSERT(move > 0)
 
@@ -246,16 +242,15 @@ namespace ImageProcessing
             current = next + m * bestOffset;
 
             line.push_back(current + Position<float>(0.5f, 0.5f));
-#if DEFINED(DEBUG)
-            writePreviewPixel(previewImage, line.back().x, line.back().y, 1, 255);
-#endif
+            if(areLinesVisible)
+                writePreviewPixel(previewImage, line.back().x, line.back().y, 1, 255);
             step += 1;
         }
 
         return line;
     }
 
-    void followLineNew(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int colorThresholdDark, std::vector<uint8_t>& previewImage, std::vector<Position<int>>* line)
+    void followLineNew(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int colorThresholdDark, uint8_t* previewImage, std::vector<Position<int>>* line)
     {
         float moveInside = 30.f;
         float moveSize = 5.f;
@@ -282,6 +277,9 @@ namespace ImageProcessing
         {
 #if !DEFINED(DEBUG)
             if(index > 70 || point.y < IMAGE_HEIGHT / 2)
+                return;
+#else
+            if(index > 200)
                 return;
 #endif
 
@@ -382,7 +380,7 @@ namespace ImageProcessing
         }
     }
 
-    void findLinesNew(std::vector<uint8_t>& previewImage, uint8_t* image, std::vector<Position<int>>* lineLeft, std::vector<Position<int>>* lineRight)
+    void findLinesNew(uint8_t* previewImage, uint8_t* image, std::vector<Position<int>>* lineLeft, std::vector<Position<int>>* lineRight)
     {
         float moveInside = 30.f;
         float moveSize = 3.f;
@@ -441,33 +439,34 @@ namespace ImageProcessing
             followLineNew(image, leftFirst, rightSecond, colorThresholdDark, previewImage, lineRight);
         }
 
-#if DEFINED(DEBUG)
-        for(int i = 0; i < lineLeft->size(); ++i)
+        if(areLinesVisible)
         {
-            const auto& p = (*lineLeft)[i];
-            if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+            for(int i = 0; i < lineLeft->size(); ++i)
             {
-                writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
-                writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
-                writePreviewPixelThick(previewImage, p.x, p.y, 2, 255);
+                const auto& p = (*lineLeft)[i];
+                if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+                {
+                    writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
+                    writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
+                    writePreviewPixelThick(previewImage, p.x, p.y, 2, 255);
+                }
+            }
+            for(int i = 0; i < lineRight->size(); ++i)
+            {
+                const auto& p = (*lineRight)[i];
+                if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+                {
+                    writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
+                    writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
+                    writePreviewPixelThick(previewImage, p.x, p.y, 2, 255);
+                }
             }
         }
-        for(int i = 0; i < lineRight->size(); ++i)
-        {
-            const auto& p = (*lineRight)[i];
-            if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
-            {
-                writePreviewPixelThick(previewImage, p.x, p.y, 0, 0);
-                writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
-                writePreviewPixelThick(previewImage, p.x, p.y, 2, 255);
-            }
-        }
-#endif
 
         calculateSteering(previewImage, *lineLeft, *lineRight);
     }
 
-    void findLines(std::vector<uint8_t>& previewImage, uint8_t* data, size_t size)
+    void findLines(uint8_t* previewImage, uint8_t* data, size_t size)
     {
         std::vector<Position<int>> circleOffsets;
         int space = 2;
@@ -510,7 +509,7 @@ namespace ImageProcessing
         calculateSteering(previewImage, lineLeft, lineRight);
     }
 
-    void calculateSteering(std::vector<uint8_t>& previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
+    void calculateSteering(uint8_t* previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
     {
         float rotation = 0.f;
         float throtle = 0.f;
@@ -607,18 +606,19 @@ namespace ImageProcessing
         }
 
 
-#if DEFINED(DEBUG)
-        for(int i = 0; i < lineCenter.size(); ++i)
+        if(areLinesVisible)
         {
-            const auto& p = lineCenter[i];
-            if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+            for(int i = 0; i < lineCenter.size(); ++i)
             {
-                writePreviewPixelThick(previewImage, p.x, p.y, 2, 0);
-                writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
-                writePreviewPixelThick(previewImage, p.x, p.y, 0, 255);
+                const auto& p = lineCenter[i];
+                if(p.x >= 1 && p.x < IMAGE_WIDTH-1 && p.y >= 1 && p.y < IMAGE_HEIGHT-1)
+                {
+                    writePreviewPixelThick(previewImage, p.x, p.y, 2, 0);
+                    writePreviewPixelThick(previewImage, p.x, p.y, 1, 0);
+                    writePreviewPixelThick(previewImage, p.x, p.y, 0, 255);
+                }
             }
         }
-#endif
             
 
         Position<float> pointTarget = lineCenter.back();
@@ -634,23 +634,21 @@ namespace ImageProcessing
         Position<float> pointCar(IMAGE_WIDTH / 2, IMAGE_HEIGHT + IMAGE_HEIGHT / 4);
 
         rotation = std::atan2(-(pointTarget.y - pointCar.y), pointTarget.x - pointCar.x);
-        rotation = (M_PI_2 - rotation) / M_PI_2;
+        rotation = (M_PI_2 - rotation) / M_PI_2 * 6.f;
 
         //std::cout << "rot: " << rotation << std::endl;
-#if DEFINED(DEBUG)
-        writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 0, 0);
-        writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 2, 0);
-        writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 1, 255);
-#endif
-#if !DEFINED(PC_MODE)
+        if(areLinesVisible)
+        {
+            writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 0, 0);
+            writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 2, 0);
+            writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 1, 255);
+        }
+#if DEFINED(RASPBERRY)
+        throtle = Controller::getInstance()->getThrotle();
+        throtle = std::min(throtle + 0.01f, 0.9f);
         Controller::getInstance()->setThrotle(throtle);
         Controller::getInstance()->setRotation(rotation);
 #endif
-    }
-    
-    void saveImage()
-    {
-        saveImageBool = true;
     }
     
     void saveVideo()

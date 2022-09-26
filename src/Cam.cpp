@@ -1,15 +1,6 @@
 #include <Cam.h>
 
-#if DEFINED(PC_MODE)
-#include <ImageProcessing.h>
-#include <filesystem>
-#include <iostream>
-#include <pthread.h>
-#include <chrono>
-#include <iostream>
-#include <thread>
-
-#else
+#if DEFINED(RASPBERRY)
 
 #include <iostream>
 #include <memory>
@@ -20,11 +11,19 @@
 #include <fstream>
 #include <ImageProcessing.h>
 #include <atomic>
-#include <pthread.h>
+
+#else
+
+#include <ImageProcessing.h>
+#include <filesystem>
+#include <iostream>
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 #endif
 
-#if !DEFINED(PC_MODE)
+#if DEFINED(RASPBERRY)
 
 void print(int value)
 {
@@ -48,25 +47,24 @@ void requestComplete(libcamera::Request *request)
 	newImage.notify_all();
 }
 
-void* threadFunc(void* arg)
+void Cam::cameraLoop()
 {
-    Cam* cam = Cam::getInstance();
-
-    while(threadRunning.load(std::memory_order_acquire))
+	std::mutex mutex;
+	while(threadRunning)
     {
-        if(cam->queue.size() > 0)
+        if(queue.size() > 0)
         {
-	    	//std::cout << "queue size: " << cam->queue.size() << std::endl;
-            cam->queue.front()();
-            cam->queue.pop_front();
+	    	//std::cout << "queue size: " << queue.size() << std::endl;
+            queue.front()();
+            queue.pop_front();
         }
 		else
 		{
-			std::unique_lock lock(m);
+			std::unique_lock lock(mutex);
 			newImage.wait(lock);
 		}
     }
-	return (void*)nullptr;
+	return;
 }
 
 Cam::Cam() : threadRunning(false), cameraRunning(false)
@@ -99,7 +97,7 @@ void Cam::processRequest(libcamera::Request *request)
 	}
 
 	/* Re-queue the Request to the camera. */
-    if(cameraRunning.load(std::memory_order_acquire))
+    if(cameraRunning)
     {
         request->reuse(libcamera::Request::ReuseBuffers);
 	    camera->queueRequest(request);
@@ -111,10 +109,16 @@ void Cam::init()
     cameraManager = std::make_shared<libcamera::CameraManager>();
 
 	int ret = cameraManager->start();
-	print(ret);
+	//print(ret);
 
     int countCam = cameraManager->cameras().size();
     std::cout << "count cam: " << countCam << std::endl;
+
+	if(countCam == 0)
+	{
+    	std::cout << "no camera found" << countCam << std::endl;
+		return;		
+	}
 
     std::string cameraId = cameraManager->cameras()[0]->id();
 
@@ -177,9 +181,9 @@ void Cam::init()
 void Cam::start()
 {
     int ret = camera->configure(config.get());
-
     if(ret)
         throw std::exception();
+
     libcamera::StreamConfiguration &streamConfig = config->at(0);
 
     allocator = std::make_unique<libcamera::FrameBufferAllocator>(camera);
@@ -251,35 +255,30 @@ void Cam::start()
 	int64_t frame_time = 1000000 / FRAMERATE; // in us
 	controls.set(libcamera::controls::FrameDurationLimits, libcamera::Span<const int64_t, 2>({ frame_time, frame_time }));
 
-    cameraRunning.store(true, std::memory_order_release);
+    cameraRunning = true;
     camera->start(&controls);
 	for (std::unique_ptr<libcamera::Request> &request : requests)
 		camera->queueRequest(request.get());
 
 
-
     threadRunning = true;
-    int threadRet;
-    threadRet = pthread_create(&thread, NULL, &threadFunc, NULL);
-    if(threadRet != 0)
-    {
-        std::cout << "Thread creation error" << std::endl;
-    }
-	std::cout << "Thread created" << std::endl;
+	camThread = std::thread(std::bind(&Cam::cameraLoop, this));
+	
+	//std::cout << "Thread created" << std::endl;
 }
 
 void Cam::stop()
 {
-    cameraRunning.store(false, std::memory_order_release);
+    cameraRunning = false;
     //std::this_thread::sleep_for(std::chrono::seconds(1));
-    threadRunning.store(false, std::memory_order_release);
+    threadRunning = false;
 
-	std::cout << "Thread exiting" << std::endl;
+	//std::cout << "Thread exiting" << std::endl;
 
-    void* returnValue;
-    pthread_join(thread, &returnValue);
-
-	std::cout << "Thread terminated" << std::endl;
+	if(camThread.joinable())
+		camThread.join();
+		
+	//std::cout << "Thread terminated" << std::endl;
 
 	libcamera::StreamConfiguration &streamConfig = config->at(0);
 	libcamera::Stream *stream = streamConfig.stream();
@@ -295,70 +294,8 @@ void Cam::stop()
 
 #else
 
-struct LoopArg
+void Cam::cameraLoop()
 {
-	std::vector<std::vector<uint8_t>>* images;
-	std::vector<std::string>* imageNames;
-	std::atomic_bool* cameraRunning;
-};
-
-Cam::Cam() : cameraRunning(false)
-{}
-
-Cam::~Cam()
-{
-	LoopArg* arg = (LoopArg*)loopArg;
-	delete arg;
-}
-
-Cam* Cam::getInstance()
-{
-	static Cam cam;
-    return &cam;
-}
-
-void Cam::processRequest()
-{
-
-}
-
-void Cam::init()
-{
-	LoopArg* arg = new LoopArg();
-	arg->images = &images;
-	arg->imageNames = &imageNames;
-	arg->cameraRunning = &cameraRunning;
-
-	loopArg = (void*)arg;
-
-	int count = 0;
-	std::string imageFolder = "../images";
-	for (const auto & entry : std::filesystem::directory_iterator(imageFolder))
-		++count;
-
-	images.resize(count);
-	imageNames.reserve(count);
-	for (const auto & entry : std::filesystem::directory_iterator(imageFolder))
-	{
-        //std::cout << entry.path() << std::endl;
-		imageNames.push_back(entry.path());
-	}
-
-	std::sort(imageNames.begin(), imageNames.end());
-
-	for(int i = 0; i < imageNames.size(); ++i)
-	{
-		ImageProcessing::readImageFromFolder(imageNames[i], &images[i]);
-	}
-}
-
-void* cameraLoop(void* arg)
-{
-	LoopArg* loopArg = (LoopArg*)arg;
-	std::vector<std::vector<uint8_t>>& images = *(loopArg->images);
-	std::vector<std::string>& imageNames = *(loopArg->imageNames);
-	std::atomic_bool& cameraRunning = *(loopArg->cameraRunning);
-
 	int index = 0;
 	while(cameraRunning)
 	{
@@ -374,22 +311,57 @@ void* cameraLoop(void* arg)
     	std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 
-	return (void*) nullptr;
+	return;
+}
+Cam::Cam() : cameraRunning(false)
+{}
+
+Cam* Cam::getInstance()
+{
+	static Cam cam;
+    return &cam;
+}
+
+void Cam::init()
+{
+	int count = 0;
+	std::wstring imageFolder = std::filesystem::current_path().wstring() + L"/images";
+	for (const auto & entry : std::filesystem::directory_iterator(imageFolder))
+	{
+		if(entry.is_directory())
+			continue;
+		++count;
+	}
+
+	images.resize(count);
+	imageNames.reserve(count);
+	for (const auto & entry : std::filesystem::directory_iterator(imageFolder))
+	{
+		if(entry.is_directory())
+			continue;
+        //std::cout << entry.path() << std::endl;
+		imageNames.push_back(entry.path().string());
+	}
+
+	std::sort(imageNames.begin(), imageNames.end());
+
+	for(int i = 0; i < imageNames.size(); ++i)
+	{
+		ImageProcessing::readImageFromFolder(imageNames[i], &images[i]);
+	}
 }
 
 void Cam::start()
 {
 	cameraRunning = true;
-	
-	int threadRet;
-    threadRet = pthread_create(&thread, NULL, &cameraLoop, (void*) loopArg);
+	camThread = std::thread(std::bind(&Cam::cameraLoop, this));
 }
 
 void Cam::stop()
 {
 	cameraRunning = false;
-	void* returnVal;
-	pthread_join(thread, &returnVal);
+	if(camThread.joinable())
+		camThread.join();
 } 
 
 #endif
