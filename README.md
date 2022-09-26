@@ -1,8 +1,7 @@
 ## Installation
 
 For Raspberry:
-Install [libcamera](https://github.com/kbingham/libcamera)
-X11 headers
+Install [libcamera](https://github.com/kbingham/libcamera) & X11 headers
 
 For Linux:
 X11 header
