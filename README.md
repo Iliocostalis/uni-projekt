@@ -20,7 +20,7 @@ Build on Linux/Windows
 cd build
 cmake ..
 cd ..
-cmake --build ./build
+cmake --build ./build -DCMAKE_BUILD_TYPE=Release
 ```
 
 Build on Raspberry Pi
@@ -28,7 +28,7 @@ Build on Raspberry Pi
 cd build
 cmake ..
 cd ..
-cmake --build ./build -DCOMPILE_FOR_RASPBERRY=1
+cmake --build ./build -DCMAKE_BUILD_TYPE=Release -DCOMPILE_FOR_RASPBERRY=1
 ```
 
 Run on Linux
