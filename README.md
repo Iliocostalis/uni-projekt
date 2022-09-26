@@ -1,6 +1,11 @@
 ## Installation
 
+For Raspberry:
 Install [libcamera](https://github.com/kbingham/libcamera)
+X11 headers
+
+For Linux:
+X11 header
 
 Clone Projekt
 
@@ -11,31 +16,40 @@ Create Build Folder
 mkdir build
 ```
 
-Build on Linux
+Build on Linux/Windows
 ```sh
 cd build
 cmake ..
-cmake --build
+cd ..
+cmake --build ./build
 ```
 
 Build on Raspberry Pi
 ```sh
 cd build
 cmake ..
-cmake --build -DCOMPILE_FOR_RASPBERRY=1
+cd ..
+cmake --build ./build -DCOMPILE_FOR_RASPBERRY=1
 ```
 
 Run on Linux
 ```sh
-./cam_code
+./<Path to programm>/cam_code -preview -lines
+```
+
+Run on Windows
+```sh
+./<Path to programm>/cam_code.exe -preview -lines
 ```
 
 Run on Raspberry Pi
 (GPIO needs root)
 ```sh
-sudo ./cam_code
+sudo ./<Path to programm>/cam_code
 ```
 
 # Info
-
-Thread main:
+Args:
+- "-preview"
+- "-lines"
+- "-record"
