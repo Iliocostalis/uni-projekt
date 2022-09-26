@@ -4,11 +4,11 @@ For Raspberry:
 Install [libcamera](https://github.com/kbingham/libcamera) & X11 headers
 
 For Linux:
-X11 header
+Install X11 header
 
 Clone Projekt
 
-Run createLinks.sh
+Run createLinks.sh on Raspberry
 
 Create Build Folder
 ```sh
