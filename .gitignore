@@ -6,3 +6,4 @@ libcamera.so
 libcamera.so.0
 *.exe
 *.lnk
+tests/
