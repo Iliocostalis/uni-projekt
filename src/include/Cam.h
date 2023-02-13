@@ -41,6 +41,7 @@ class Cam
     void cameraLoop();
 #if DEFINED(RASPBERRY)
     std::vector<libcamera::Span<uint8_t>> Mmap(libcamera::FrameBuffer *buffer);
+    void requestComplete(libcamera::Request *request);
 #endif
 public:
     std::list<std::function<void(void)>> queue;
