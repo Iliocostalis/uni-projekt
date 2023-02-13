@@ -1,3 +1,4 @@
+#pragma once
 #include <ICamera.h>
 
 class CameraCreator {
