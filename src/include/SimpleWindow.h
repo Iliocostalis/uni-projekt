@@ -304,7 +304,7 @@ void SimpleWindow::windowLoop(HINSTANCE currentInstance, const uint32_t width, c
     wc.lpfnWndProc = WindowProcessMessages;
     RegisterClass(&wc);
 
-    window = CreateWindow(CLASS_NAME, "Win32 Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, width, height+40, nullptr, nullptr, nullptr, nullptr);
+    window = CreateWindow(CLASS_NAME, "Win32 Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, width, height+39, nullptr, nullptr, nullptr, nullptr);
 
     hdc = GetDC(window);
 

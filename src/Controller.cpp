@@ -23,19 +23,35 @@
 
 uint8_t buffer[32];
 
-void Controller::setDirection(bool out)
+void preciseSleep(int microseconds)
 {
-    if(out)
-        gpioWrite(AX_PIN, 1);
-    else
-        gpioWrite(AX_PIN, 0);
+    auto start = std::chrono::high_resolution_clock::now();
+    bool waiting = true;
+    while(waiting)
+    {
+	    auto now = std::chrono::high_resolution_clock::now();
+        auto microsec = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
 
+        if(microsec >= microseconds)
+            waiting = false;
+    }
+}
+
+void Controller::setDirectionOut()
+{
+    gpioWrite(AX_PIN, 1);
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
+}
+
+void Controller::setDirectionIn()
+{
+    gpioWrite(AX_PIN, 0);
     std::this_thread::sleep_for(std::chrono::microseconds(1));
 }
 
 void Controller::loop()
 {
-    while(loopRunning)
+    while(isLoopRunning)
     {
         auto begin = std::chrono::high_resolution_clock::now();
 
@@ -47,7 +63,8 @@ void Controller::loop()
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin);
         
         int sleep = std::max(0, 33333 - (int)microseconds.count());
-		std::this_thread::sleep_for(std::chrono::microseconds(sleep));
+        preciseSleep(sleep);
+		//std::this_thread::sleep_for(std::chrono::microseconds(sleep));
     }
 	return;
 }
@@ -72,15 +89,17 @@ void Controller::move()
     data[7] = positionH;
     data[8] = checksum;
 
-    setDirection(true);
-    std::this_thread::sleep_for(std::chrono::microseconds(20));
+    setDirectionOut();
+    //std::this_thread::sleep_for(std::chrono::microseconds(20));
+    preciseSleep(20);
 
     serWrite(handle, (char*)data, 9);
 
-    std::this_thread::sleep_for(std::chrono::microseconds(2000));
-    setDirection(false);
+    //std::this_thread::sleep_for(std::chrono::microseconds(2000));
+    preciseSleep(2000);
+    //setDirectionIn();
 
-    serRead(handle, (char*)buffer, serDataAvailable(handle));
+    //serRead(handle, (char*)buffer, serDataAvailable(handle));
 }
 
 void Controller::applyThrotle()
@@ -99,9 +118,7 @@ void Controller::applyThrotle()
     gpioPWM(MOTOR_PWM_PIN, pwm);
 }
 
-
-
-Controller::Controller() : loopRunning(false), rotation(0.f), throtle(0.f) {}
+Controller::Controller() : isLoopRunning(false), rotation(0.f), throtle(0.f) {}
 
 Controller* Controller::getInstance()
 {
@@ -126,7 +143,7 @@ void Controller::start()
         return;
     }
 
-    loopRunning = true;
+    isLoopRunning = true;
     controllerThread = std::thread(std::bind(&Controller::loop, this));
 }
 
@@ -136,7 +153,7 @@ void Controller::stop()
     setThrotle(0.0f);
     while(pwm != 0) {std::this_thread::sleep_for(std::chrono::milliseconds(1));}
 
-    loopRunning = false;
+    isLoopRunning = false;
     if(controllerThread.joinable())
         controllerThread.join();
 

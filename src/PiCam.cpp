@@ -1,4 +1,3 @@
-
 #include <PiCam.h>
 #if DEFINED(RASPBERRY)
 #include <iostream>
@@ -62,8 +61,7 @@ PiCam* PiCam::getInstance()
 void PiCam::processRequest(libcamera::Request *request)
 {
 #if DEFINED(CAMERA_LOG)
-	std::cout << std::endl
-		  << "Request completed: " << request->toString() << std::endl;
+	std::cout << std::endl << "Request completed: " << request->toString() << std::endl;
 #endif
 
 	if(queue.size() == 1)
@@ -129,7 +127,7 @@ void PiCam::init()
     //config->at(0).pixelFormat = libcamera::formats::R8;
     config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
-    config->at(0).bufferCount = 6;
+    config->at(0).bufferCount = IMAGE_BUFFER_COUNT;
 #if(IMAGE_WIDTH >= 1280)
 	config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
 #else
@@ -141,7 +139,7 @@ void PiCam::init()
 #if DEFINED(ADD_RAW_STREAM)
 	config->at(1).pixelFormat = libcamera::formats::SBGGR8;
 	config->at(1).size = size;
-    config->at(1).bufferCount = 6;
+    config->at(1).bufferCount = IMAGE_BUFFER_COUNT;
 #endif
 
     switch(config->validate())
@@ -158,7 +156,7 @@ void PiCam::init()
             std::cout << "Invalid" << std::endl;
             break;
     }
-    
+
 	initSuccessful = true;
 }
 

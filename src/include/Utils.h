@@ -16,8 +16,6 @@ public:
 
     Position(){}
     Position(T x, T y){this->x = x; this->y = y;}
-    //Position(const Position<T>& other){x = other.x; y = other.y;}
-    //void operator=(const Position<T>& other){x = other.x; y = other.y;}
     
     template<class T2>
     Position(const Position<T2>& other);

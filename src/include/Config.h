@@ -2,11 +2,9 @@
 
 #define DEFINED(v) (v == 1)
 
-#define USE_HIGH_RES 0
 #define ADD_RAW_STREAM 1
 #define CAMERA_LOG 0
-#define PREVIEW_LOG 0
-#define SAVE_VIDEO_FRAME_DELAY 500 // in ms
+#define SAVE_VIDEO_FRAME_DELAY_MS 500
 
 #ifndef NDEBUG
 #define DEBUG 1
@@ -14,20 +12,9 @@
 #define DEBUG 0
 #endif
 
-#if DEFINED(USE_HIGH_RES)
-    #define IMAGE_WIDTH 1280
-    #define IMAGE_HEIGHT 960
-#else
-    #define IMAGE_WIDTH 640
-    #define IMAGE_HEIGHT 480
-#endif
+#define IMAGE_WIDTH 640
+#define IMAGE_HEIGHT 480
 
-#define WINDOW_WIDTH IMAGE_WIDTH
-#define WINDOW_HEIGHT IMAGE_HEIGHT
-#define WINDOW_X 0
-#define WINDOW_Y 0
-#define WINDOW_BORDER 1
-
-#define IMAGE_BUFFER_COUNT 3
+#define IMAGE_BUFFER_COUNT 6
 
 #define FRAMERATE 60

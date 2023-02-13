@@ -7,7 +7,7 @@
 class Controller
 {
     int handle;
-    std::atomic_bool loopRunning;
+    std::atomic_bool isLoopRunning;
     std::thread controllerThread;
     float rotation;
     float throtle;
@@ -17,7 +17,8 @@ class Controller
     void loop();
     void move();
     void applyThrotle();
-    void setDirection(bool out);
+    void setDirectionOut();
+    void setDirectionIn();
 
 public:
     Controller(Controller const&)      = delete;

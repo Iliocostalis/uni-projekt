@@ -1,10 +1,11 @@
 #include <Config.h>
 #include <iostream>
-#include <Cam.h>
+#include <CameraCreator.h>
 #include <ImageProcessing.h>
 #include <Controller.h>
 #include <Utils.h>
 #include <mutex>
+#include <string>
 
 #define SIMPLE_WINDOW_IMPLEMENTATION
 #if DEFINED(WINDOWS)
@@ -26,6 +27,8 @@ int main(int argc, char *argv[])
 {
 #if DEFINED(DEBUG)
 	std::cout << "Debug build" << std::endl;
+#else 
+	std::cout << "Release build" << std::endl;
 #endif
 
 	for(int i = 1; i < argc; ++i)
@@ -33,13 +36,21 @@ int main(int argc, char *argv[])
 
 	areLinesVisible = areLinesVisible && isPreviewVisible;
 
+	ICamera* cam = CameraCreator::getCamera();
+
+	cam->init();
+	if(!cam->wasInitSuccessful())
+	{
+		std::cout << "Camera init error" << std::endl;
+		return 0;
+	}
+
 	if(isPreviewVisible)
 		window = new SimpleWindow(IMAGE_WIDTH, IMAGE_HEIGHT, 2, [](){stop.notify_all();});
 
-	Cam::getInstance()->init();
-	Cam::getInstance()->start();
+	cam->start();
 
-	if(isPreviewVisible && window->isOpen())
+	if(isPreviewVisible)
 	{
 		std::mutex m;
 		std::unique_lock<std::mutex> lk(m);
@@ -62,7 +73,7 @@ int main(int argc, char *argv[])
 		window->close();
 
 	// close all
-	Cam::getInstance()->stop();
+	cam->stop();
 	if(isPreviewVisible)
 		delete window;
 	return 0;
