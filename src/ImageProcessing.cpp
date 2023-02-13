@@ -466,6 +466,31 @@ namespace ImageProcessing
         calculateSteering(previewImage, *lineLeft, *lineRight);
     }
 
+    {
+        uint8_t* image;
+        int colorThreshold;
+
+        int rows = 10;
+        int startHeight = (int)((float)IMAGE_HEIGHT * 0.7f);
+        int endHeight = IMAGE_HEIGHT - 20;
+        int width = (int)((float)IMAGE_WIDTH * 0.4f);
+        int space = width / rows;
+        int startX = (IMAGE_WIDTH - width) / 2;
+
+
+        int countDarkPixel = 0;
+        for(int r = 0; r < rows; ++r)
+        {
+            int currentX = startX + space * r;
+            for(int y = startHeight; y < endHeight; ++y)
+            {
+                if(image[y * IMAGE_WIDTH + currentX] <= colorThresholdDark)
+                    countDarkPixel += 1;
+            }
+        }
+
+        return (float)countDarkPixel / (float)(rows * endHeight - startHeight);
+    }
     void findLines(uint8_t* previewImage, uint8_t* data, size_t size)
     {
         std::vector<Position<int>> circleOffsets;
@@ -538,7 +563,7 @@ namespace ImageProcessing
         Position<float> direction(0.f, -1.f);
         Average<Position<float>> avDir(5);
         avDir.addSample(Position<float>(0.f, -1.f));
-        float rad = 0.6f;
+        float rad = 0.7f;
         float moveDistance = 3.f;
 
         while (true)

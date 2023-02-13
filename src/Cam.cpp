@@ -299,7 +299,7 @@ void Cam::cameraLoop()
 	int index = 0;
 	while(cameraRunning)
 	{
-		//index = 81;
+		//index = 9;
 #if DEFINED(CAMERA_LOG)
 		std::cout << "load image: " << imageNames[index] << " index: " << index << std::endl;
 #endif
