@@ -158,6 +158,13 @@ void PiCam::init()
             std::cout << "Invalid" << std::endl;
             break;
     }
+    
+	initSuccessful = true;
+}
+
+bool PiCam::wasInitSuccessful()
+{
+    return initSuccessful;
 }
 
 void PiCam::start()

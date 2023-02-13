@@ -34,13 +34,13 @@ class PiCam : public ICamera
 
 
     PiCam();
-    void cameraLoop();
+    virtual void cameraLoop();
     
     std::vector<libcamera::Span<uint8_t>> Mmap(libcamera::FrameBuffer *buffer);
     
 public:
     friend class CameraCreator;
-    
+
     std::list<std::function<void(void)>> queue;
 
     PiCam(PiCam const&)             = delete;
@@ -50,15 +50,10 @@ public:
 
     void processRequest(libcamera::Request *request);
 
-    void init();
-    void start();
-    void stop(); 
-
 
     virtual void init();
     virtual bool wasInitSuccessful();
     virtual void start();
     virtual void stop();
-    virtual void cameraLoop();
 };
 #endif
