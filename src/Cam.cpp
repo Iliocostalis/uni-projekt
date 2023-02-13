@@ -249,7 +249,7 @@ void Cam::start()
 	}
 
 	
-    camera->requestCompleted.connect(std::bind(this, requestComplete));
+    camera->requestCompleted.connect(std::bind(this, &Cam::requestComplete));
 
 
 	int64_t frame_time = 1000000 / FRAMERATE; // in us
