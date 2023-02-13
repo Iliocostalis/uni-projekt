@@ -32,7 +32,7 @@ void preciseSleep(int microseconds)
 	    auto now = std::chrono::high_resolution_clock::now();
         auto microsec = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
 
-        if(microsec >= microseconds)
+        if(microsec.count() >= microseconds)
             waiting = false;
     }
 }

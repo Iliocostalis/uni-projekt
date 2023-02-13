@@ -121,18 +121,10 @@ void PiCam::init()
 
     libcamera::Transform transform = libcamera::Transform::Identity;
 
-    //config->at(0).pixelFormat = libcamera::formats::RGB888;
-    //config->at(0).pixelFormat = libcamera::formats::BGR888;
-    // err config->at(0).pixelFormat = libcamera::formats::SGBRG10;
-    //config->at(0).pixelFormat = libcamera::formats::R8;
     config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
     config->at(0).bufferCount = IMAGE_BUFFER_COUNT;
-#if(IMAGE_WIDTH >= 1280)
-	config->at(0).colorSpace = libcamera::ColorSpace::Rec709;
-#else
 	config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
-#endif
     config->transform = transform;
 
 	// raw
@@ -201,7 +193,6 @@ void PiCam::start()
 					buffer_size = 0;
 				}
 			}
-			//frame_buffers_[stream].push(buffer.get());
 		}
 	}
 
@@ -226,12 +217,9 @@ void PiCam::start()
 			return;
 		}
 
-		/*
-		 * Controls can be added to a request on a per frame basis.
-		 */
+		//Controls can be added to a request on a per frame basis.
 		libcamera::ControlList &controls = request->controls();
 		controls.set(libcamera::controls::Brightness, 0.5f);
-
 		requests.push_back(std::move(request));
 	}
 
