@@ -30,11 +30,10 @@ void print(int value)
     std::cout << value << std::endl;
 }
 
-std::vector<libcamera::Span<uint8_t>> Mmap(libcamera::FrameBuffer *buffer)
+std::vector<libcamera::Span<uint8_t>> Cam::Mmap(libcamera::FrameBuffer *buffer)
 {
-	Cam* cam = Cam::getInstance();
-	auto item = cam->mapped_buffers.find(buffer);
-	if (item == cam->mapped_buffers.end())
+	auto item = mapped_buffers.find(buffer);
+	if (item == mapped_buffers.end())
 		return {};
 	return item->second;
 }
