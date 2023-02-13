@@ -38,14 +38,14 @@ std::vector<libcamera::Span<uint8_t>> Cam::Mmap(libcamera::FrameBuffer *buffer)
 	return item->second;
 }
 
-std::condition_variable& newImageReference = nullptr;
+std::condition_variable* newImageReference = nullptr;
 void requestComplete(libcamera::Request *request)
 {
 	if (request->status() == libcamera::Request::RequestCancelled)
 		return;
 
     Cam::getInstance()->queue.push_back(std::bind(&Cam::processRequest, Cam::getInstance(), request));
-	newImageReference.notify_all();
+	newImageReference->notify_all();
 }
 
 void Cam::cameraLoop()
@@ -69,7 +69,7 @@ void Cam::cameraLoop()
 
 Cam::Cam() : threadRunning(false), cameraRunning(false)
 {
-	newImageReference = newImage;
+	newImageReference = &newImage;
 }
 
 Cam* Cam::getInstance()
