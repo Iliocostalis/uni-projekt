@@ -682,7 +682,7 @@ namespace ImageProcessing
         if(percentageDarkPixels > 0.025f){
             std::cout << "OHMDriver stopped" << std::endl;
             #if DEFINED(RASPBERRY)
-            Controller::getInstance()->setThrotle(throtle);
+            //Controller::getInstance()->setThrotle(throtle);
             #endif
         }
 
