@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #if DEFINED(RASPBERRY)
+#include <map>
 #include <libcamera/libcamera.h>
 #include <condition_variable>
 #endif

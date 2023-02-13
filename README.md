@@ -3,8 +3,8 @@
 #Raspberry:
 Install [libcamera](https://github.com/kbingham/libcamera) & X11 headers (libx11-dev)
 Note: Building libcamera needs more ram than the Raspberry 3B+ has. To fix it increase the "Swap File" size (1024 MB is enough).
-Add the libcamera folder to your PATH.
-
+Export the path to libcamera.
+Example:
 ```sh
 export LIBCAMERA=/home/dragon/Desktop/libcamera
 ```
