@@ -364,10 +364,13 @@ namespace ImageProcessing
             for(int y = startHeight; y < endHeight; ++y) {        
                 if(image[y * IMAGE_WIDTH + currentX] <= streetColorDark) {
                     countDarkPixel += 1;                    
-                }    
-                writePreviewPixelThick(previewImage, currentX, y, 0, 0);
-                writePreviewPixelThick(previewImage, currentX, y, 1, 0);
-                writePreviewPixelThick(previewImage, currentX, y, 2, 255);
+                }
+                if(isPreviewVisible)
+                {
+                    writePreviewPixelThick(previewImage, currentX, y, 0, 0);
+                    writePreviewPixelThick(previewImage, currentX, y, 1, 0);
+                    writePreviewPixelThick(previewImage, currentX, y, 2, 255);
+                }
             } 
         }  
         return (float)countDarkPixel / (float)(rows * endHeight - startHeight);

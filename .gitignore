@@ -1,10 +1,5 @@
 build/*
 .vscode/
-libcamera-base.so
-libcamera-base.so.0
-libcamera.so
-libcamera.so.0
 *.exe
 *.lnk
-tests/
 images/image_*
