@@ -2,13 +2,7 @@
 //#include <PiCam.h>
 //#include <DevCam.h>
 
-#include <vector>
-#include <stdint.h>
-#include <iostream>
-#include <thread>
-#include <atomic>
-#include <functional>
-#include <chrono>
+
 #include <X11/Xlib.h>
 
 #include <libcamera/libcamera.h>
