@@ -1,6 +1,11 @@
 #include <Config.h>
 //#include <PiCam.h>
 //#include <DevCam.h>
+#include <vector>
+#include <condition_variable>
+#include <Config.h>
+//#include <SimpleWindow.h>
+
 #include <libcamera/libcamera.h>
 
 
