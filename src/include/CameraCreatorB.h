@@ -1,7 +1,7 @@
 #pragma once
 #include <ICamera.h>
 
-class CameraCreator {
+class CameraCreatorB {
     public:
         static ICamera* getCamera();
 };

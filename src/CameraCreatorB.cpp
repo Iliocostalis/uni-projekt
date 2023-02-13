@@ -1,9 +1,9 @@
 #include <Utils.h>
 #include <PiCam.h>
 //#include <DevCam.h>
-#include <CameraCreator.h>
+#include <CameraCreatorB.h>
 
-ICamera* CameraCreator::getCamera() {
+ICamera* CameraCreatorB::getCamera() {
 #if DEFINED(RASPBERRY)
     //static PiCam piCam;
     //return &piCam;
