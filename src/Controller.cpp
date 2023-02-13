@@ -38,8 +38,8 @@ void Controller::loop()
     {
         auto begin = std::chrono::high_resolution_clock::now();
 
-        controller->move();
-        controller->applyThrotle();
+        move();
+        applyThrotle();
 
         // limit to 30 hz
 	    auto end = std::chrono::high_resolution_clock::now();
