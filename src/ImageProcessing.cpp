@@ -8,68 +8,35 @@
 #include <math.h>
 #include <cmath>
 #include <Debugging.h>
+#include <Controller.h>
 
 namespace ImageProcessing
 {
     int imageNameCount = 0;
     std::atomic_bool saveVideoBool(false);
-    auto lastImageSaved = std::chrono::high_resolution_clock::now();
-    auto last = std::chrono::high_resolution_clock::now();
+    auto timeLastImageSaved = std::chrono::high_resolution_clock::now();
+    auto timeLast = std::chrono::high_resolution_clock::now();
 
     Average<std::chrono::microseconds> averageTime(5);
     std::chrono::microseconds lasts[5];
 
-    std::array<std::vector<uint8_t>, IMAGE_BUFFER_COUNT> imageBuffer;
-    std::atomic<int> currentImageIndex(0);
+    Position<int> startPosition;
+    int averageStreetColor;
+    int streetColorDark;
 
-    void process(uint8_t* data, size_t size)
+    void copyCurrentImageToWindow(uint8_t* data)
     {
-
-        uint8_t* previewImage = nullptr;
-        if(isPreviewVisible)
+        uint8_t* previewImage = window->getImagePointer(window->getNextImageIndex());
+        for(int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; ++i)
         {
-            previewImage = window->getImagePointer(window->getNextImageIndex());
-            for(int i = 0; i < IMAGE_WIDTH * IMAGE_HEIGHT; ++i)
-            {
-                previewImage[i * 4 + 0] = data[i];
-                previewImage[i * 4 + 1] = data[i];
-                previewImage[i * 4 + 2] = data[i];
-                //previewImage[i * 4 + 3] = 255;
-            }
-        }
-
-        std::vector<Position<int>> lineLeft;
-        std::vector<Position<int>> lineRight;
-        //findLines(imageBuffer[nextImageIndex], data, size);
-        findLinesNew(previewImage, data, &lineLeft, &lineRight);
-
-        if(isPreviewVisible)
-            window->swap();
-
-        auto now = std::chrono::high_resolution_clock::now();
-        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now - last);
-        last = now;
-
-#if DEFINED(CAMERA_LOG)
-        averageTime.addSample(microseconds);
-        std::cout << "image count: " << averageTime.getAverage().count() << std::endl;
-        std::cout << "fps: " << 1000000.0f / averageTime.getAverage().count() << std::endl;
-        std::cout << "size: " << size << std::endl;
-#endif
-        auto timeLastImageSaved = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastImageSaved);
-
-        // Y420
-        if(saveVideoBool && timeLastImageSaved.count() > SAVE_VIDEO_FRAME_DELAY)
-        {
-            lastImageSaved = now;
-            std::string fileName = std::string("../images/image_") + std::to_string(imageNameCount);
-            imageNameCount += 1;
-            if(imageNameCount > 500)
-                stopVideo();
-
-            saveImageToFolder(fileName, data);
+            previewImage[i * 4 + 0] = data[i];
+            previewImage[i * 4 + 1] = data[i];
+            previewImage[i * 4 + 2] = data[i];
+            //previewImage[i * 4 + 3] = 255; // ignore alpha -> better performance
         }
     }
+
+    
 
     inline void writePreviewPixel(uint8_t* previewImage, int x, int y, int rgb, uint8_t value)
     {
@@ -98,7 +65,7 @@ namespace ImageProcessing
         return sum;
     }
 
-    Position<int> moveTillBorder(uint8_t* image, const Position<int>& start, int moveX, int colorThresholdDark, uint8_t* previewImage)
+    Position<int> moveTillBorder(uint8_t* image, const Position<int>& start, int moveX, int streetColorDark, uint8_t* previewImage)
     {
         ASSERT(moveX == 1 || moveX == -1)
 
@@ -113,7 +80,7 @@ namespace ImageProcessing
             min = std::min(min, val);
             max = std::max(max, val);
 
-            if(val < colorThresholdDark)
+            if(val < streetColorDark)
             {
                 sum += 1;
             }
@@ -136,7 +103,7 @@ namespace ImageProcessing
         return pos;
     }
 
-    Position<float> moveTillBorder(uint8_t* image, const Position<float>& start, const Position<float>& moveDirection, int colorThresholdDark, int stepCount, int blackCountToStop, bool* found, uint8_t* previewImage)
+    Position<float> moveTillBorder(uint8_t* image, const Position<float>& start, const Position<float>& moveDirection, int streetColorDark, int stepCount, int blackCountToStop, bool* found, uint8_t* previewImage)
     {
         Position<float> pos(start);
 
@@ -155,7 +122,7 @@ namespace ImageProcessing
             count += 1;
 
             int val = image[(int)pos.y * IMAGE_WIDTH + (int)pos.x];
-            if(val < colorThresholdDark)
+            if(val < streetColorDark)
             {
                 sum += 1;
             }
@@ -182,7 +149,7 @@ namespace ImageProcessing
         return pos;
     }
 
-    std::vector<Position<int>> followLine(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int colorThresholdDark, const std::vector<Position<int>>& circleOffsets, uint8_t* previewImage)
+    std::vector<Position<int>> followLine(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int move, int streetColorDark, const std::vector<Position<int>>& circleOffsets, uint8_t* previewImage)
     {
         ASSERT(move > 0)
 
@@ -222,7 +189,7 @@ namespace ImageProcessing
             for(float o = -2.0f; o <= 2.0f; ++o)
             {
                 //auto pp = next + m * o + Position<float>(0.5f, 0.5f);
-                int b = blackCount(image, circleOffsets, next + m * o + Position<float>(0.5f, 0.5f), colorThresholdDark);
+                int b = blackCount(image, circleOffsets, next + m * o + Position<float>(0.5f, 0.5f), streetColorDark);
                 int diff = std::abs(b-9);
                 if(diff*3 + (int)std::abs(o) < lowest*3)
                 {
@@ -250,7 +217,7 @@ namespace ImageProcessing
         return line;
     }
 
-    void followLineNew(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int colorThresholdDark, uint8_t* previewImage, std::vector<Position<int>>* line)
+    void followLineNew(uint8_t* image, const Position<int>& firstPoint, const Position<int>& secondPoint, int streetColorDark, uint8_t* previewImage, std::vector<Position<int>>* line)
     {
         float moveInside = 30.f;
         float moveSize = 5.f;
@@ -356,9 +323,9 @@ namespace ImageProcessing
 
             pointNext = point + direction * moveSizeScaled + directionInside * moveInsideScaled;
 
-            moveTillBorder(image, pointNext + direction * (float)-findGapScaled, direction, colorThresholdDark, findGapScaled*2, 1, &gapDetected, previewImage);
+            moveTillBorder(image, pointNext + direction * (float)-findGapScaled, direction, streetColorDark, findGapScaled*2, 1, &gapDetected, previewImage);
             if(!gapDetected)
-                moveTillBorder(image, pointNext + direction * (float)-findGapScaled + directionOutside * (moveInsideScaled * 0.2f), direction, colorThresholdDark, findGapScaled*2, 1, &gapDetected, previewImage);
+                moveTillBorder(image, pointNext + direction * (float)-findGapScaled + directionOutside * (moveInsideScaled * 0.2f), direction, streetColorDark, findGapScaled*2, 1, &gapDetected, previewImage);
             if(gapDetected)
             {
                 if(cutCount > maxCuts)
@@ -372,7 +339,7 @@ namespace ImageProcessing
                 cutCount = 0;
 
             bool borderFound;
-            pointNext = moveTillBorder(image, pointNext, directionOutside, colorThresholdDark, moveInsideScaled*3.f, 2, &borderFound, previewImage);
+            pointNext = moveTillBorder(image, pointNext, directionOutside, streetColorDark, moveInsideScaled*3.f, 2, &borderFound, previewImage);
 
             if(!borderFound)
                 return;
@@ -380,22 +347,15 @@ namespace ImageProcessing
         }
     }
 
-    void findLinesNew(uint8_t* previewImage, uint8_t* image, std::vector<Position<int>>* lineLeft, std::vector<Position<int>>* lineRight)
+    int getAverageStreetColor(const Position<int>& position, uint8_t* image)
     {
-        float moveInside = 30.f;
-        float moveSize = 3.f;
-
-        Position<int> start;
-        start.x = IMAGE_WIDTH / 2;
-        start.y = (IMAGE_HEIGHT / 8) * 7;
-
         int averageColorA = 0;
         for(int y = -4; y <= 4; ++y)
         {
             for(int x = -4; x <= 4; ++x)
             {
-                int ix = start.x + x;
-                int iy = start.y + y;
+                int ix = position.x + x;
+                int iy = position.y + y;
                 averageColorA += (int)image[iy * IMAGE_WIDTH + ix];
             }
         }
@@ -405,38 +365,40 @@ namespace ImageProcessing
         {
             for(int x = -4; x <= 4; ++x)
             {
-                int ix = start.x + x;
-                int iy = start.y + y - IMAGE_HEIGHT / 8;
+                int ix = position.x + x;
+                int iy = position.y + y - IMAGE_HEIGHT / 8;
                 averageColorB += (int)image[iy * IMAGE_WIDTH + ix];
             }
         }
 
-        int averageColor = std::max(averageColorA, averageColorB) / 81;
-        int colorThresholdDark = averageColor * 0.8f;
+        return std::max(averageColorA, averageColorB) / 81;
+    }
 
+    void findLinesNew(uint8_t* previewImage, uint8_t* image, std::vector<Position<int>>* lineLeft, std::vector<Position<int>>* lineRight)
+    {
+        Position<int> leftFirst = moveTillBorder(image, startPosition, -1, streetColorDark, previewImage);
+        Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -3), -1, streetColorDark, previewImage);
+        Position<int> rightFrist = moveTillBorder(image, startPosition, 1, streetColorDark, previewImage);
+        Position<int> rightSecond = moveTillBorder(image, rightFrist+Position<int>(-20, -3), 1, streetColorDark, previewImage);
 
-        Position<int> leftFirst = moveTillBorder(image, start, -1, colorThresholdDark, previewImage);
-        Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -3), -1, colorThresholdDark, previewImage);
-        Position<int> rightFrist = moveTillBorder(image, start, 1, colorThresholdDark, previewImage);
-        Position<int> rightSecond = moveTillBorder(image, rightFrist+Position<int>(-20, -3), 1, colorThresholdDark, previewImage);
-
-        followLineNew(image, leftFirst, leftSecond, colorThresholdDark, previewImage, lineLeft);
-        followLineNew(image, rightFrist, rightSecond, colorThresholdDark, previewImage, lineRight);
+        
+        followLineNew(image, leftFirst, leftSecond, streetColorDark, previewImage, lineLeft);
+        followLineNew(image, rightFrist, rightSecond, streetColorDark, previewImage, lineRight);
 
         if(lineLeft->size() < 8)
         {
-            Position<int> leftFirst = moveTillBorder(image, start+Position<int>(0, -20), -1, colorThresholdDark, previewImage);
-            Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -23), -1, colorThresholdDark, previewImage);
+            Position<int> leftFirst = moveTillBorder(image, startPosition+Position<int>(0, -20), -1, streetColorDark, previewImage);
+            Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -23), -1, streetColorDark, previewImage);
             lineLeft->clear();
-            followLineNew(image, leftFirst, leftSecond, colorThresholdDark, previewImage, lineLeft);
+            followLineNew(image, leftFirst, leftSecond, streetColorDark, previewImage, lineLeft);
         }
 
         if(lineRight->size() < 8)
         {
-            Position<int> leftFirst = moveTillBorder(image, start+Position<int>(0, -20), -1, colorThresholdDark, previewImage);
-            Position<int> rightSecond = moveTillBorder(image, leftFirst+Position<int>(20, -23), -1, colorThresholdDark, previewImage);
+            Position<int> leftFirst = moveTillBorder(image, startPosition+Position<int>(0, -20), -1, streetColorDark, previewImage);
+            Position<int> rightSecond = moveTillBorder(image, leftFirst+Position<int>(20, -23), -1, streetColorDark, previewImage);
             lineRight->clear();
-            followLineNew(image, leftFirst, rightSecond, colorThresholdDark, previewImage, lineRight);
+            followLineNew(image, leftFirst, rightSecond, streetColorDark, previewImage, lineRight);
         }
 
         if(areLinesVisible)
@@ -462,76 +424,28 @@ namespace ImageProcessing
                 }
             }
         }
-
-        calculateSteering(previewImage, *lineLeft, *lineRight);
     }
 
-    {
-        uint8_t* image;
-        int colorThreshold;
-
+    double getPercentageDarkPixels(uint8_t* image, uint8_t* previewImage, int streetColorDark) {
         int rows = 10;
-        int startHeight = (int)((float)IMAGE_HEIGHT * 0.7f);
-        int endHeight = IMAGE_HEIGHT - 20;
-        int width = (int)((float)IMAGE_WIDTH * 0.4f);
-        int space = width / rows;
-        int startX = (IMAGE_WIDTH - width) / 2;
-
-
-        int countDarkPixel = 0;
-        for(int r = 0; r < rows; ++r)
-        {
-            int currentX = startX + space * r;
-            for(int y = startHeight; y < endHeight; ++y)
-            {
-                if(image[y * IMAGE_WIDTH + currentX] <= colorThresholdDark)
-                    countDarkPixel += 1;
-            }
-        }
-
+        int startHeight = (int)((float)IMAGE_HEIGHT * 0.8f);
+        int endHeight = IMAGE_HEIGHT - 20;   
+        int width = (int)((float)IMAGE_WIDTH * 0.35f);
+        int space = width / rows;  
+        int startX = (IMAGE_WIDTH - width) / 2;   
+        int countDarkPixel = 0;  
+        for(int r = 0; r < rows; ++r)    {   
+            int currentX = startX + space * r;   
+            for(int y = startHeight; y < endHeight; ++y) {        
+                if(image[y * IMAGE_WIDTH + currentX] <= streetColorDark) {
+                    countDarkPixel += 1;                    
+                }    
+                writePreviewPixelThick(previewImage, currentX, y, 0, 0);
+                writePreviewPixelThick(previewImage, currentX, y, 1, 0);
+                writePreviewPixelThick(previewImage, currentX, y, 2, 255);
+            } 
+        }  
         return (float)countDarkPixel / (float)(rows * endHeight - startHeight);
-    }
-    void findLines(uint8_t* previewImage, uint8_t* data, size_t size)
-    {
-        std::vector<Position<int>> circleOffsets;
-        int space = 2;
-        for(int i = 0; i < 18; ++i)
-        {
-            float rad = (float)((360 / 18) * i) * (M_PI / 180);
-            Position<int> pos;
-            pos.x = (int)(std::cos(rad) * space + 10.5f) - 10;
-            pos.y = (int)(std::sin(rad) * space + 10.5f) - 10;
-            circleOffsets.push_back(pos);
-        }
-
-        Position<int> start;
-        start.x = IMAGE_WIDTH / 2;
-        start.y = (IMAGE_HEIGHT / 8) * 7;
-
-        int averageColor = 0;
-        for(int y = -4; y <= 4; ++y)
-        {
-            for(int x = -4; x <= 4; ++x)
-            {
-                int ix = start.x + x;
-                int iy = start.y + y;
-                averageColor += (int)data[iy * IMAGE_WIDTH + ix];
-            }
-        }
-        averageColor /= 81;
-        int colorThresholdDark = averageColor * 0.8f;
-
-
-        Position<int> leftFirst = moveTillBorder(data, start, -1, colorThresholdDark, previewImage);
-        Position<int> leftSecond = moveTillBorder(data, leftFirst+Position<int>(20, -3), -1, colorThresholdDark, previewImage);
-        Position<int> rightFrist = moveTillBorder(data, start, 1, colorThresholdDark, previewImage);
-        Position<int> rightSecond = moveTillBorder(data, rightFrist+Position<int>(-20, -3), 1, colorThresholdDark, previewImage);
-
-        auto lineLeft = followLine(data, leftFirst, leftSecond, 4, colorThresholdDark, circleOffsets, previewImage);
-        auto lineRight = followLine(data, rightFrist, rightSecond, 4, colorThresholdDark, circleOffsets, previewImage);
-
-
-        calculateSteering(previewImage, lineLeft, lineRight);
     }
 
     void calculateSteering(uint8_t* previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
@@ -563,7 +477,7 @@ namespace ImageProcessing
         Position<float> direction(0.f, -1.f);
         Average<Position<float>> avDir(5);
         avDir.addSample(Position<float>(0.f, -1.f));
-        float rad = 0.7f;
+        float rad = 0.6f;
         float moveDistance = 3.f;
 
         while (true)
@@ -744,5 +658,73 @@ namespace ImageProcessing
         }
 
         delete[] input;
+    }
+
+    void process(uint8_t* image, size_t size)
+    {
+        uint8_t* previewImage = nullptr;
+        if(isPreviewVisible)
+        {
+            previewImage = window->getImagePointer(window->getNextImageIndex());
+            copyCurrentImageToWindow(image);
+        }
+
+        startPosition.x = IMAGE_WIDTH / 2;
+        startPosition.y = (IMAGE_HEIGHT / 8) * 7;
+
+        averageStreetColor = getAverageStreetColor(startPosition, image);
+        streetColorDark = (int)((float)averageStreetColor * 0.8f);
+
+        double percentageDarkPixels = getPercentageDarkPixels(image, previewImage, streetColorDark);
+
+        std::cout << "Start/Stop line percentage: " << percentageDarkPixels << std::endl;
+
+        if(percentageDarkPixels > 0.025f){
+            std::cout << "OHMDriver stopped" << std::endl;
+            #if DEFINED(RASPBERRY)
+            Controller::getInstance()->setThrotle(throtle);
+            #endif
+        }
+
+        std::vector<Position<int>> lineLeft;
+        std::vector<Position<int>> lineRight;
+        findLinesNew(previewImage, image, &lineLeft, &lineRight);
+
+        calculateSteering(previewImage, lineLeft, lineRight);
+
+
+
+
+
+
+
+
+
+        if(isPreviewVisible)
+            window->swap();
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+
+#if DEFINED(CAMERA_LOG)
+        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - timeLast);
+        timeLast = currentTime;
+        averageTime.addSample(microseconds);
+        std::cout << "image count: " << averageTime.getAverage().count() << std::endl;
+        std::cout << "fps: " << 1000000.0f / averageTime.getAverage().count() << std::endl;
+        std::cout << "size: " << size << std::endl;
+#endif
+        auto durationLastImageSaved = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - timeLastImageSaved);
+
+        // Y420
+        if(saveVideoBool && durationLastImageSaved.count() > SAVE_VIDEO_FRAME_DELAY)
+        {
+            timeLastImageSaved = currentTime;
+            std::string fileName = std::string("../images/image_") + std::to_string(imageNameCount);
+            imageNameCount += 1;
+            if(imageNameCount > 500)
+                stopVideo();
+
+            saveImageToFolder(fileName, image);
+        }
     }
 }
