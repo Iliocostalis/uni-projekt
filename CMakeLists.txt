@@ -5,11 +5,10 @@ project(cam_code)
 message("CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 message("BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std:c++17")
-
 if(${COMPILE_FOR_RASPBERRY})
 
     message("BUILD_FOR_RASPBERRY")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     set(CMAKE_BUILD_TYPE Release)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
     add_executable(cam_code "")
@@ -22,6 +21,7 @@ if(${COMPILE_FOR_RASPBERRY})
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
     message("BUILD_FOR_WINDOWS")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std:c++17")
     add_executable(cam_code "")
     add_subdirectory("src")
     target_compile_definitions(cam_code PRIVATE RASPBERRY=0)
@@ -31,6 +31,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 else()
 
     message("BUILD_FOR_LINUX")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std:c++17")
     add_executable(cam_code "")
     add_subdirectory("src")
     target_compile_definitions(cam_code PRIVATE RASPBERRY=0)
