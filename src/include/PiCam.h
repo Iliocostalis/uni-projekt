@@ -13,7 +13,7 @@
 #include <libcamera/libcamera.h>
 #include <condition_variable>
 #include <ICamera.h>
-#include <CameraCreator.h>
+#include <CameraCreatorB.h>
 
 class PiCam : public ICamera
 {
