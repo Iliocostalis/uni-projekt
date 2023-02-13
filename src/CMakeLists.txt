@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
 IF(DEFINED ENV{LIBCAMERA})
-link_directories("{LIBCAMERA}/src/libcamera")
-link_directories("{LIBCAMERA}/src/libcamera/base")
+link_directories("$ENV{LIBCAMERA}/src/libcamera")
+link_directories("$ENV{LIBCAMERA}/src/libcamera/base")
 
-target_include_directories(cam_code PUBLIC "${LIBCAMERA}/build/include/")
-target_include_directories(cam_code PUBLIC "${LIBCAMERA}/include/")
+target_include_directories(cam_code PUBLIC "$ENV{LIBCAMERA}/build/include/")
+target_include_directories(cam_code PUBLIC "$ENV{LIBCAMERA}/include/")
 
 ENDIF()
 
