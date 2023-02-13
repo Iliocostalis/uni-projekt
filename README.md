@@ -33,11 +33,12 @@ cmake --build ./build
 Build on Raspberry Pi
 ```sh
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCOMPILE_FOR_RASPBERRY=1
+cmake .. -DCOMPILE_FOR_RASPBERRY=1
 cd ..
 cmake --build ./build
 ```
 
+Important: Your command line must be in the same location as the "images" folder.
 Run on Linux
 ```sh
 ./<Path to programm>/cam_code -preview -lines

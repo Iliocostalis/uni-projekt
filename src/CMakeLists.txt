@@ -10,6 +10,4 @@ target_include_directories(cam_code PUBLIC "$ENV{LIBCAMERA}/include/")
 ENDIF()
 
 target_include_directories(cam_code PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
-#file(GLOB srcFiles CONFIGURE_DEPENDS "*.cpp")
-#target_sources(cam_code PRIVATE ${srcFiles})
 target_sources(cam_code PRIVATE Main.cpp PiCam.cpp ImageProcessing.cpp Controller.cpp Utils.cpp CameraCreator.cpp DevCam.cpp)
