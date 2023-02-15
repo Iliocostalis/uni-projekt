@@ -45,6 +45,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	Controller::getInstance()->start();
+
 	if(isPreviewVisible)
 		window = new SimpleWindow(IMAGE_WIDTH, IMAGE_HEIGHT, 2, [](){stop.notify_all();});
 
@@ -73,6 +75,7 @@ int main(int argc, char *argv[])
 		window->close();
 
 	// close all
+	Controller::getInstance()->stop();
 	cam->stop();
 	if(isPreviewVisible)
 		delete window;

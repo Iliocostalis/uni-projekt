@@ -1,8 +1,8 @@
 #pragma once
 #include <Config.h>
-#if DEFINED(RASPBERRY)
 #include <atomic>
 #include <thread>
+#include <chrono>
 
 class Controller
 {
@@ -12,6 +12,10 @@ class Controller
     float rotation;
     float throtle;
     int pwm;
+    float percentageDarkPixelsInStartStopLine;
+    bool isMotorOn;
+    bool isMotorSwitchingState;
+    std::chrono::steady_clock::time_point timeMotorWillSwitchState;
     
     Controller();
     void loop();
@@ -19,6 +23,9 @@ class Controller
     void applyThrotle();
     void setDirectionOut();
     void setDirectionIn();
+    void updateStartStop();
+    void startMotor();
+    void stopMotor();
 
 public:
     Controller(Controller const&)      = delete;
@@ -35,5 +42,6 @@ public:
     // -1(left) to 1(right)
     void setRotation(float value);
     float getRotation();
+
+    void updatePercentageDarkPixelsInStartStopLine(float value);
 };
-#endif

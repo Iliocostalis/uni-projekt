@@ -351,7 +351,7 @@ namespace ImageProcessing
         }
     }
 
-    double getPercentageDarkPixels(uint8_t* image, uint8_t* previewImage, int streetColorDark) {
+    float getPercentageDarkPixels(uint8_t* image, uint8_t* previewImage, int streetColorDark) {
         int rows = 10;
         int startHeight = (int)((float)IMAGE_HEIGHT * 0.8f);
         int endHeight = IMAGE_HEIGHT - 20;   
@@ -359,6 +359,7 @@ namespace ImageProcessing
         int space = width / rows;  
         int startX = (IMAGE_WIDTH - width) / 2;   
         int countDarkPixel = 0;  
+
         for(int r = 0; r < rows; ++r)    {   
             int currentX = startX + space * r;   
             for(int y = startHeight; y < endHeight; ++y) {        
@@ -367,9 +368,9 @@ namespace ImageProcessing
                 }
                 if(isPreviewVisible)
                 {
-                    writePreviewPixelThick(previewImage, currentX, y, 0, 0);
-                    writePreviewPixelThick(previewImage, currentX, y, 1, 0);
-                    writePreviewPixelThick(previewImage, currentX, y, 2, 255);
+                    writePreviewPixel(previewImage, currentX, y, 0, 0);
+                    writePreviewPixel(previewImage, currentX, y, 1, 0);
+                    writePreviewPixel(previewImage, currentX, y, 2, 255);
                 }
             } 
         }  
@@ -510,12 +511,11 @@ namespace ImageProcessing
             writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 2, 0);
             writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 1, 255);
         }
-#if DEFINED(RASPBERRY)
+        
         throtle = Controller::getInstance()->getThrotle();
         throtle = std::min(throtle + 0.01f, 0.9f);
         Controller::getInstance()->setThrotle(throtle);
         Controller::getInstance()->setRotation(rotation);
-#endif
     }
     
     void saveVideo()
@@ -603,16 +603,9 @@ namespace ImageProcessing
         averageStreetColor = getAverageStreetColor(startPosition, image);
         streetColorDark = (int)((float)averageStreetColor * 0.8f);
 
-        double percentageDarkPixels = getPercentageDarkPixels(image, previewImage, streetColorDark);
+        float percentageDarkPixels = getPercentageDarkPixels(image, previewImage, streetColorDark);
 
-        std::cout << "Start/Stop line percentage: " << percentageDarkPixels << std::endl;
-
-        if(percentageDarkPixels > 0.025f){
-            std::cout << "OHMDriver stopped" << std::endl;
-            #if DEFINED(RASPBERRY)
-            //Controller::getInstance()->setThrotle(throtle);
-            #endif
-        }
+        Controller::getInstance()->updatePercentageDarkPixelsInStartStopLine(percentageDarkPixels);
 
         std::vector<Position<int>> lineLeft;
         std::vector<Position<int>> lineRight;

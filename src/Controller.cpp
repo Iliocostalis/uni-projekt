@@ -1,6 +1,7 @@
 #include <Controller.h>
 #if DEFINED(RASPBERRY)
 #include <pigpio.h>
+#endif
 #include <thread>
 #include <chrono>
 #include <iostream>
@@ -22,6 +23,18 @@
 #define AX_WRITE_DATA 3
 
 uint8_t buffer[32];
+
+
+#if !DEFINED(RASPBERRY)
+#define PI_OUTPUT 0
+void gpioWrite(int, int){}
+void serWrite(int, char*, int){}
+void gpioPWM(int, int){}
+void gpioInitialise(){}
+void gpioTerminate(){}
+int serOpen(const char*, int, int){return 1;}
+void gpioSetMode(int, int){}
+#endif
 
 void preciseSleep(int microseconds)
 {
@@ -49,12 +62,55 @@ void Controller::setDirectionIn()
     std::this_thread::sleep_for(std::chrono::microseconds(1));
 }
 
+void Controller::updateStartStop()
+{
+    const float threshold = 0.025f;
+    const int detectionDelayInSeconds = 5;
+    const int motorOffDelayInSeconds = 5;
+
+    std::cout << "Start/Stop line percentage: " << percentageDarkPixelsInStartStopLine << std::endl;
+    
+    auto now = std::chrono::high_resolution_clock::now();
+
+    if(isMotorSwitchingState && timeMotorWillSwitchState <= now)
+    {
+        if(isMotorOn)
+            stopMotor();
+        else
+            startMotor();
+    }
+
+    if(percentageDarkPixelsInStartStopLine < threshold)
+        return;
+
+    std::cout << "Start stop detected" << std::endl;
+
+    if(!isMotorSwitchingState)
+    {
+        isMotorSwitchingState = true;
+        timeMotorWillSwitchState = now + std::chrono::seconds(5);
+    }
+}
+
+void Controller::startMotor()
+{
+    throtle = 1.0f;
+    isMotorOn = true;
+}
+
+void Controller::stopMotor()
+{
+    throtle = 0;
+    isMotorOn = false;
+}
+
 void Controller::loop()
 {
     while(isLoopRunning)
     {
         auto begin = std::chrono::high_resolution_clock::now();
 
+        updateStartStop();
         move();
         applyThrotle();
 
@@ -118,7 +174,7 @@ void Controller::applyThrotle()
     gpioPWM(MOTOR_PWM_PIN, pwm);
 }
 
-Controller::Controller() : isLoopRunning(false), rotation(0.f), throtle(0.f) {}
+Controller::Controller() : isLoopRunning(false), isMotorOn(false), isMotorSwitchingState(false), rotation(0.f), throtle(0.f) {}
 
 Controller* Controller::getInstance()
 {
@@ -135,7 +191,7 @@ void Controller::start()
     gpioSetMode(MOTOR_DIRECTION_PIN, PI_OUTPUT);
     //gpioSetPWMfrequency(MOTOR_PWM_PIN, 500); // 500 hz
     gpioPWM(MOTOR_PWM_PIN, 0);
-    setThrotle(0.0f);
+    stopMotor();
 
     if(handle < 0)
     {
@@ -150,7 +206,7 @@ void Controller::start()
 void Controller::stop()
 {
     // wait for throtle to be zero
-    setThrotle(0.0f);
+    stopMotor();
     while(pwm != 0) {std::this_thread::sleep_for(std::chrono::milliseconds(1));}
 
     isLoopRunning = false;
@@ -180,4 +236,7 @@ float Controller::getRotation()
     return rotation;
 }
 
-#endif
+void Controller::updatePercentageDarkPixelsInStartStopLine(float value)
+{
+    percentageDarkPixelsInStartStopLine = value;
+}
