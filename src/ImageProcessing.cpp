@@ -40,18 +40,22 @@ namespace ImageProcessing
 
     inline void writePreviewPixel(uint8_t* previewImage, int x, int y, int rgb, uint8_t value)
     {
-        ASSERT(x >= 0 && x < IMAGE_WIDTH && y >= 0 && y < IMAGE_HEIGHT);
-        previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
+        //ASSERT(x >= 0 && x < IMAGE_WIDTH && y >= 0 && y < IMAGE_HEIGHT);
+        if(x >= 0 && x < IMAGE_WIDTH && y >= 0 && y < IMAGE_HEIGHT)
+            previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
     }
 
     inline void writePreviewPixelThick(uint8_t* previewImage, int x, int y, int rgb, uint8_t value)
     {
-        ASSERT(x >= 1 && x < IMAGE_WIDTH-1 && y >= 1 && y < IMAGE_HEIGHT-1);
-        previewImage[((y+1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
-        previewImage[((y+1)*IMAGE_WIDTH+x-1)*4 + rgb] = value;
-        previewImage[((y-1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
-        previewImage[((y-1)*IMAGE_WIDTH+x-1)*4 + rgb] = value;
-        previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
+        //ASSERT(x >= 1 && x < IMAGE_WIDTH-1 && y >= 1 && y < IMAGE_HEIGHT-1);
+        if(x >= 1 && x < IMAGE_WIDTH-1 && y >= 1 && y < IMAGE_HEIGHT-1)
+        {
+            previewImage[((y+1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
+            previewImage[((y+1)*IMAGE_WIDTH+x-1)*4 + rgb] = value;
+            previewImage[((y-1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
+            previewImage[((y-1)*IMAGE_WIDTH+x-1)*4 + rgb] = value;
+            previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
+        }
     }
 
     Position<int> moveTillBorder(uint8_t* image, const Position<int>& start, int moveX, int streetColorDark, uint8_t* previewImage)
