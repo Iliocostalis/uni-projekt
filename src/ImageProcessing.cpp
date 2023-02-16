@@ -384,7 +384,6 @@ namespace ImageProcessing
     void calculateSteering(uint8_t* previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
     {
         float rotation = 0.f;
-        float throtle = 0.f;
         int minLineSteps = 10;
 
         if(pointsOnLineLeft.size() < minLineSteps)
@@ -516,9 +515,6 @@ namespace ImageProcessing
             writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 1, 255);
         }
         
-        throtle = Controller::getInstance()->getThrotle();
-        throtle = std::min(throtle + 0.01f, 0.9f);
-        Controller::getInstance()->setThrotle(throtle);
         Controller::getInstance()->setRotation(rotation);
     }
     
