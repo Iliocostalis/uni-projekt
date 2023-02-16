@@ -74,6 +74,7 @@ void Controller::updateStartStop()
 
     if(isMotorSwitchingState && timeMotorWillSwitchState <= now)
     {
+        isMotorSwitchingState = false;
         if(isMotorOn)
             stopMotor();
         else
@@ -81,6 +82,9 @@ void Controller::updateStartStop()
     }
 
     if(percentageDarkPixelsInStartStopLine < threshold)
+        return;
+
+    if(timeMotorWillSwitchState + std::chrono::seconds(5) > now)
         return;
 
     std::cout << "Start stop detected" << std::endl;
