@@ -70,7 +70,7 @@ void Controller::updateStartStop()
 
     std::cout << "Start/Stop line percentage: " << percentageDarkPixelsInStartStopLine << std::endl;
     
-    auto now = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::system_clock::now();
 
     if(isMotorSwitchingState && timeMotorWillSwitchState <= now)
     {

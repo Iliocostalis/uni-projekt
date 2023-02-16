@@ -15,7 +15,7 @@ class Controller
     float percentageDarkPixelsInStartStopLine;
     bool isMotorOn;
     bool isMotorSwitchingState;
-    std::chrono::steady_clock::time_point timeMotorWillSwitchState;
+    std::chrono::system_clock::time_point timeMotorWillSwitchState;
     
     Controller();
     void loop();
