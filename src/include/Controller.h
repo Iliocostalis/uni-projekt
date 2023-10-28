@@ -10,17 +10,18 @@ class Controller
     std::atomic_bool isLoopRunning;
     std::thread controllerThread;
     float rotation;
-    float throtle;
+    float throttle;
     int pwm;
     float percentageDarkPixelsInStartStopLine;
     bool isMotorOn;
     bool isMotorSwitchingState;
+    
     std::chrono::system_clock::time_point timeMotorWillSwitchState;
     
     Controller();
     void loop();
     void move();
-    void applyThrotle();
+    void applyThrottle();
     void setDirectionOut();
     void setDirectionIn();
     void updateStartStop();
@@ -28,18 +29,16 @@ class Controller
     void stopMotor();
 
 public:
-    Controller(Controller const&)      = delete;
-    void operator=(Controller const&)  = delete;
+    Controller(const Controller&)      = delete;
+    void operator=(const Controller&)  = delete;
 
     static Controller* getInstance();
 
     void start();
     void stop();
 
-    // -1(backwards) to 1(forward) -> 0.5 = 50% throtle forward
-    void setThrotle(float value);
-    float getThrotle();
-    // -1(left) to 1(right)
+    void setThrottle(float value);
+    float getThrottle();
     void setRotation(float value);
     float getRotation();
 

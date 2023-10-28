@@ -1,3 +1,4 @@
+#include <OhmCarSimulatorConnector.h>
 #include <Config.h>
 #include <iostream>
 #include <CameraCreator.h>
@@ -35,6 +36,10 @@ int main(int argc, char *argv[])
 		parseArgs(std::string(argv[i]));
 
 	areLinesVisible = areLinesVisible && isPreviewVisible;
+
+#if DEFINED(USE_OHMCARSIMULATOR)
+	OhmCarSimulatorConnector::getInstance()->startConnection();
+#endif
 
 	ICamera* cam = CameraCreator::getCamera();
 
@@ -77,6 +82,11 @@ int main(int argc, char *argv[])
 	// close all
 	Controller::getInstance()->stop();
 	cam->stop();
+
+#if DEFINED(USE_OHMCARSIMULATOR)
+	OhmCarSimulatorConnector::getInstance()->closeConnection();
+#endif
+
 	if(isPreviewVisible)
 		delete window;
 	return 0;

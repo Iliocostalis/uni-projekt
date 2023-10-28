@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 #include <functional>
+#include <OhmCarSimulatorConnector.h>
 
 
 #define MOTOR_PWM_PIN 23
@@ -36,6 +37,7 @@ int serOpen(const char*, int, int){return 1;}
 void gpioSetMode(int, int){}
 #endif
 
+// Only for very short sleeps in microseconds
 void preciseSleep(int microseconds)
 {
     auto start = std::chrono::high_resolution_clock::now();
@@ -65,11 +67,9 @@ void Controller::setDirectionIn()
 void Controller::updateStartStop()
 {
     const float threshold = 0.025f;
-    const int detectionDelayInSeconds = 5;
-    const int motorOffDelayInSeconds = 5;
+    const int detectionDelayInSeconds = 4;
+    const int motorOffDelayInSeconds = 2;
 
-    std::cout << "Start/Stop line percentage: " << percentageDarkPixelsInStartStopLine << std::endl;
-    
     auto now = std::chrono::system_clock::now();
 
     if(isMotorSwitchingState && timeMotorWillSwitchState <= now)
@@ -84,27 +84,27 @@ void Controller::updateStartStop()
     if(percentageDarkPixelsInStartStopLine < threshold)
         return;
 
-    if(timeMotorWillSwitchState + std::chrono::seconds(5) > now)
+    if(timeMotorWillSwitchState + std::chrono::seconds(detectionDelayInSeconds) > now)
         return;
 
-    std::cout << "Start stop detected" << std::endl;
+    std::cout << "Start/Stop detected" << std::endl;
 
     if(!isMotorSwitchingState)
     {
         isMotorSwitchingState = true;
-        timeMotorWillSwitchState = now + std::chrono::seconds(5);
+        timeMotorWillSwitchState = now + std::chrono::seconds(motorOffDelayInSeconds);
     }
 }
 
 void Controller::startMotor()
 {
-    throtle = 1.0f;
+    setThrottle(1.0f);
     isMotorOn = true;
 }
 
 void Controller::stopMotor()
 {
-    throtle = 0;
+    setThrottle(0.0f);
     isMotorOn = false;
 }
 
@@ -115,16 +115,34 @@ void Controller::loop()
         auto begin = std::chrono::high_resolution_clock::now();
 
         updateStartStop();
+        
+#if DEFINED(USE_OHMCARSIMULATOR)
+        uint8_t headerAndData[6+8];
+
+        headerAndData[0] = TYPE_CAR;
+        headerAndData[1] = 0;
+        OhmCarSimulatorConnector::intToBytes(8, headerAndData, 2);
+        int length = OhmCarSimulatorConnector::readInt(headerAndData, 2);
+
+        OhmCarSimulatorConnector::floatToBytes(throttle, headerAndData, 6);
+        OhmCarSimulatorConnector::floatToBytes(-rotation, headerAndData, 10);
+
+        OhmCarSimulatorConnector* connector = OhmCarSimulatorConnector::getInstance();
+        if(connector->isSocketConnected)
+        {
+            connector->sendData(headerAndData, 6+8);
+        }
+#else
         move();
-        applyThrotle();
+        applyThrottle();
+#endif
 
         // limit to 30 hz
 	    auto end = std::chrono::high_resolution_clock::now();
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin);
         
         int sleep = std::max(0, 33333 - (int)microseconds.count());
-        preciseSleep(sleep);
-		//std::this_thread::sleep_for(std::chrono::microseconds(sleep));
+		std::this_thread::sleep_for(std::chrono::microseconds(sleep));
     }
 	return;
 }
@@ -133,7 +151,9 @@ void Controller::move()
 {
     uint8_t data[] = {0xFF, 0xFF, 0x01, 0x05, 0x03, 0x1E, 0xCD, 0x00, 0x0B};
 
-    int position = (int)(rotation*180.f);
+    // 160 is the maximum value for rotation that is possible with the chassis in terms of steering-angle
+    // +200 offset, because the servomotor can not handle negative numbers
+    int position = (int)(rotation*160.f + 200.f);
     uint8_t positionH = (uint8_t)((position >> 8) & 0xff);
     uint8_t positionL = (uint8_t)((position) & 0xff);
     
@@ -150,35 +170,28 @@ void Controller::move()
     data[8] = checksum;
 
     setDirectionOut();
-    //std::this_thread::sleep_for(std::chrono::microseconds(20));
     preciseSleep(20);
 
     serWrite(handle, (char*)data, 9);
-
-    //std::this_thread::sleep_for(std::chrono::microseconds(2000));
-    preciseSleep(2000);
-    //setDirectionIn();
-
-    //serRead(handle, (char*)buffer, serDataAvailable(handle));
 }
 
-void Controller::applyThrotle()
+void Controller::applyThrottle()
 {
-    if(throtle < 0.f)
+    if(throttle < 0.f)
     {
-        pwm = (int)(-throtle*255.0f + 0.5f);
+        pwm = (int)(-throttle*255.0f + 0.5f);
         gpioWrite(MOTOR_DIRECTION_PIN, 0);
     }
     else
     {
-        pwm = (int)(throtle*255.0f + 0.5f);
+        pwm = (int)(throttle*255.0f + 0.5f);
         gpioWrite(MOTOR_DIRECTION_PIN, 1);
     }
     
     gpioPWM(MOTOR_PWM_PIN, pwm);
 }
 
-Controller::Controller() : isLoopRunning(false), isMotorOn(false), isMotorSwitchingState(false), rotation(0.f), throtle(0.f) {}
+Controller::Controller() : isLoopRunning(false), isMotorOn(false), isMotorSwitchingState(false), rotation(0.f), throttle(0.f) {}
 
 Controller* Controller::getInstance()
 {
@@ -193,7 +206,6 @@ void Controller::start()
     gpioSetMode(AX_PIN, PI_OUTPUT);
 
     gpioSetMode(MOTOR_DIRECTION_PIN, PI_OUTPUT);
-    //gpioSetPWMfrequency(MOTOR_PWM_PIN, 500); // 500 hz
     gpioPWM(MOTOR_PWM_PIN, 0);
     stopMotor();
 
@@ -209,7 +221,7 @@ void Controller::start()
 
 void Controller::stop()
 {
-    // wait for throtle to be zero
+    // wait for throttle to be zero
     stopMotor();
     while(pwm != 0) {std::this_thread::sleep_for(std::chrono::milliseconds(1));}
 
@@ -220,14 +232,14 @@ void Controller::stop()
     gpioTerminate();
 }
 
-void Controller::setThrotle(float value)
+void Controller::setThrottle(float value)
 {
-    throtle = std::min(1.f, std::max(-1.f, value));
+    throttle = std::min(1.f, std::max(-1.f, value));
 }
 
-float Controller::getThrotle()
+float Controller::getThrottle()
 {
-    return throtle;
+    return throttle;
 }
 
 void Controller::setRotation(float value)

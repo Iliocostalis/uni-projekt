@@ -12,7 +12,6 @@ void DevCam::cameraLoop()
 	int index = 0;
 	while (cameraRunning)
 	{
-		// index = 81;
 #if DEFINED(CAMERA_LOG)
 		std::cout << "load image: " << imageNames[index] << " index: " << index << std::endl;
 #endif
@@ -20,22 +19,13 @@ void DevCam::cameraLoop()
 		int size = images[index].size();
 		ImageProcessing::process(data, size);
 		index = (index + 1) % images.size();
-
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 
 	return;
 }
 
-DevCam::DevCam() : cameraRunning(false)
-{
-}
-
-DevCam *DevCam::getInstance()
-{
-	static DevCam DevCam;
-	return &DevCam;
-}
+DevCam::DevCam() : cameraRunning(false) {}
 
 bool stringCompare(const std::string& s1, const std::string& s2)
 {

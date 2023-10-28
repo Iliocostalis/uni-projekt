@@ -10,14 +10,15 @@
 #include <ImageProcessing.h>
 #include <atomic>
 
-std::condition_variable* newImageReference = nullptr;
 void requestComplete(libcamera::Request *request)
 {
 	if (request->status() == libcamera::Request::RequestCancelled)
 		return;
 
-    PiCam::getInstance()->queue.push_back(std::bind(&PiCam::processRequest, PiCam::getInstance(), request));
-	newImageReference->notify_all();
+	ICamera* cam = CameraCreator::getCamera();
+	PiCam* piCam = (PiCam*)cam;
+    piCam->queue.push_back(std::bind(&PiCam::processRequest, piCam, request));
+	piCam->notifyNewImageReady.notify_all();
 }
 
 std::vector<libcamera::Span<uint8_t>> PiCam::Mmap(libcamera::FrameBuffer *buffer)
@@ -41,7 +42,7 @@ void PiCam::cameraLoop()
 		else
 		{
 			std::unique_lock lock(mutex);
-			newImage.wait(lock);
+			notifyNewImageReady.wait(lock);
 		}
     }
 	return;
@@ -49,13 +50,6 @@ void PiCam::cameraLoop()
 
 PiCam::PiCam() : threadRunning(false), cameraRunning(false)
 {
-	newImageReference = &newImage;
-}
-
-PiCam* PiCam::getInstance()
-{
-	static PiCam cam;
-    return &cam;
 }
 
 void PiCam::processRequest(libcamera::Request *request)
@@ -77,7 +71,7 @@ void PiCam::processRequest(libcamera::Request *request)
 		}
 	}
 
-	/* Re-queue the Request to the camera. */
+	// Re-queue the Request to the camera
     if(cameraRunning)
     {
         request->reuse(libcamera::Request::ReuseBuffers);
@@ -123,7 +117,7 @@ void PiCam::init()
 
     config->at(0).pixelFormat = libcamera::formats::YUV420;
     config->at(0).size = size;
-    config->at(0).bufferCount = IMAGE_BUFFER_COUNT;
+    config->at(0).bufferCount = imageBufferCount;
 	config->at(0).colorSpace = libcamera::ColorSpace::Smpte170m;
     config->transform = transform;
 
@@ -131,7 +125,7 @@ void PiCam::init()
 #if DEFINED(ADD_RAW_STREAM)
 	config->at(1).pixelFormat = libcamera::formats::SBGGR8;
 	config->at(1).size = size;
-    config->at(1).bufferCount = IMAGE_BUFFER_COUNT;
+    config->at(1).bufferCount = imageBufferCount;
 #endif
 
     switch(config->validate())
@@ -227,7 +221,7 @@ void PiCam::start()
     camera->requestCompleted.connect(requestComplete);
 
 
-	int64_t frame_time = 1000000 / FRAMERATE; // in us
+	int64_t frame_time = 1000000 / framerate; // in us
 	controls.set(libcamera::controls::FrameDurationLimits, libcamera::Span<const int64_t, 2>({ frame_time, frame_time }));
 
     cameraRunning = true;
@@ -238,8 +232,6 @@ void PiCam::start()
 
     threadRunning = true;
 	camThread = std::thread(std::bind(&PiCam::cameraLoop, this));
-	
-	//std::cout << "Thread created" << std::endl;
 }
 
 void PiCam::stop()
@@ -247,12 +239,8 @@ void PiCam::stop()
     cameraRunning = false;
     threadRunning = false;
 
-	//std::cout << "Thread exiting" << std::endl;
-
 	if(camThread.joinable())
 		camThread.join();
-		
-	//std::cout << "Thread terminated" << std::endl;
 
 	libcamera::StreamConfiguration &streamConfig = config->at(0);
 	libcamera::Stream *stream = streamConfig.stream();

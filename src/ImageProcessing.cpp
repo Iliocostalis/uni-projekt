@@ -40,14 +40,12 @@ namespace ImageProcessing
 
     inline void writePreviewPixel(uint8_t* previewImage, int x, int y, int rgb, uint8_t value)
     {
-        //ASSERT(x >= 0 && x < IMAGE_WIDTH && y >= 0 && y < IMAGE_HEIGHT);
         if(x >= 0 && x < IMAGE_WIDTH && y >= 0 && y < IMAGE_HEIGHT)
             previewImage[(y*IMAGE_WIDTH+x)*4 + rgb] = value;
     }
 
     inline void writePreviewPixelThick(uint8_t* previewImage, int x, int y, int rgb, uint8_t value)
     {
-        //ASSERT(x >= 1 && x < IMAGE_WIDTH-1 && y >= 1 && y < IMAGE_HEIGHT-1);
         if(x >= 1 && x < IMAGE_WIDTH-1 && y >= 1 && y < IMAGE_HEIGHT-1)
         {
             previewImage[((y+1)*IMAGE_WIDTH+x+1)*4 + rgb] = value;
@@ -217,8 +215,6 @@ namespace ImageProcessing
 
                 stepDetected = true;
                 point = point + direction * moveSizeScaled;
-                //pointLastValid = point;
-                //avDir.addSample(directionNew);
             }
             else
             {
@@ -306,14 +302,16 @@ namespace ImageProcessing
     void findLines(uint8_t* previewImage, uint8_t* image, std::vector<Position<int>>* lineLeft, std::vector<Position<int>>* lineRight)
     {
         Position<int> leftFirst = moveTillBorder(image, startPosition, -1, streetColorDark, previewImage);
-        Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -3), -1, streetColorDark, previewImage);
         Position<int> rightFrist = moveTillBorder(image, startPosition, 1, streetColorDark, previewImage);
+        // redo a bit higher in order find the direction of the border
+        Position<int> leftSecond = moveTillBorder(image, leftFirst+Position<int>(20, -3), -1, streetColorDark, previewImage);
         Position<int> rightSecond = moveTillBorder(image, rightFrist+Position<int>(-20, -3), 1, streetColorDark, previewImage);
 
         
         followLine(image, leftFirst, leftSecond, streetColorDark, previewImage, lineLeft);
         followLine(image, rightFrist, rightSecond, streetColorDark, previewImage, lineRight);
 
+        // if the found border is to short try it again a bit higher
         if(lineLeft->size() < 8)
         {
             Position<int> leftFirst = moveTillBorder(image, startPosition+Position<int>(0, -20), -1, streetColorDark, previewImage);
@@ -359,7 +357,7 @@ namespace ImageProcessing
         int rows = 10;
         int startHeight = (int)((float)IMAGE_HEIGHT * 0.8f);
         int endHeight = IMAGE_HEIGHT - 20;   
-        int width = (int)((float)IMAGE_WIDTH * 0.35f);
+        int width = (int)((float)IMAGE_WIDTH * 0.3f);
         int space = width / rows;  
         int startX = (IMAGE_WIDTH - width) / 2;   
         int countDarkPixel = 0;  
@@ -384,7 +382,7 @@ namespace ImageProcessing
     void calculateSteering(uint8_t* previewImage, const std::vector<Position<int>>& pointsOnLineLeft, const std::vector<Position<int>>& pointsOnLineRight)
     {
         float rotation = 0.f;
-        int minLineSteps = 10;
+        int minLineSteps = 6;
 
         if(pointsOnLineLeft.size() < minLineSteps)
             return;
@@ -415,10 +413,8 @@ namespace ImageProcessing
         while (true)
         {
             lineCenter.push_back(center);
-#if DEFINED(DEBUG)
             if(center.y <= (IMAGE_HEIGHT * 4) / 6)
                 break;
-#endif
 
             Position<float> dir = avDir.getAverage();
             dir = dir / std::sqrt(dir.x*dir.x+dir.y*dir.y);
@@ -505,9 +501,20 @@ namespace ImageProcessing
         Position<float> pointCar(IMAGE_WIDTH / 2, IMAGE_HEIGHT + IMAGE_HEIGHT / 4);
 
         rotation = std::atan2(-(pointTarget.y - pointCar.y), pointTarget.x - pointCar.x);
-        rotation = (M_PI_2 - rotation) / M_PI_2 * 6.f;
+        rotation = (M_PI_2 - rotation) / M_PI_2 * 5.f;
+        float rotationNew = 0;
+        if(rotation <= 0)
+            rotationNew = -rotation*rotation;
+        else
+            rotationNew = rotation*rotation;
 
-        //std::cout << "rot: " << rotation << std::endl;
+        if(rotation < 0.1 && rotation > -0.1)
+            rotationNew = rotation;
+
+#if !DEFINED(USE_OHMCARSIMULATOR)
+        rotationNew -= 0.3f;
+#endif
+
         if(areLinesVisible)
         {
             writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 0, 0);
@@ -515,7 +522,7 @@ namespace ImageProcessing
             writePreviewPixelThick(previewImage, pointTarget.x, pointTarget.y, 1, 255);
         }
         
-        Controller::getInstance()->setRotation(rotation);
+        Controller::getInstance()->setRotation(rotationNew);
     }
     
     void saveVideo()

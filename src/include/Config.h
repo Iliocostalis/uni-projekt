@@ -14,7 +14,3 @@
 
 #define IMAGE_WIDTH 640
 #define IMAGE_HEIGHT 480
-
-#define IMAGE_BUFFER_COUNT 6
-
-#define FRAMERATE 60

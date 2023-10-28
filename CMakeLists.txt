@@ -27,6 +27,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_compile_definitions(cam_code PRIVATE RASPBERRY=0)
     target_compile_definitions(cam_code PRIVATE WINDOWS=1)
     target_compile_definitions(cam_code PRIVATE LINUX=0)
+    target_compile_definitions(cam_code PRIVATE USE_OHMCARSIMULATOR=1)
 
 else()
 

@@ -62,8 +62,8 @@ class Average
     int index;
 
 public:
-    Average(Average const&)         = delete;
-    void operator=(Average const&)  = delete;
+    Average(const Average&)         = delete;
+    void operator=(const Average&)  = delete;
 
     Average(int count)
     {

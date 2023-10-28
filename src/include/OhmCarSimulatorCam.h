@@ -1,4 +1,7 @@
 #pragma once
+#include <Debugging.h>
+#if DEFINED(USE_OHMCARSIMULATOR)
+#include <winsock2.h>
 #include <list>
 #include <functional>
 #include <atomic>
@@ -8,25 +11,24 @@
 #include <Config.h>
 #include <ICamera.h>
 
-class DevCam : public ICamera
+class OhmCarSimulatorCam : public ICamera
 {
-    std::vector<std::string> imageNames;
-    std::vector<std::vector<uint8_t>> images;
     std::thread camThread;
     std::atomic_bool cameraRunning;
 
-    DevCam();    
+    OhmCarSimulatorCam();    
     virtual void cameraLoop();
 
 public:
     friend class CameraCreator;
     std::list<std::function<void(void)>> queue;
 
-    DevCam(const DevCam&) = delete;
-    void operator=(const DevCam&) = delete;
+    OhmCarSimulatorCam(const OhmCarSimulatorCam&) = delete;
+    void operator=(const OhmCarSimulatorCam&) = delete;
 
     virtual void init();
     virtual bool wasInitSuccessful();
     virtual void start();
     virtual void stop();
 };
+#endif
